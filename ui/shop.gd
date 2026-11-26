@@ -231,6 +231,7 @@ func _refresh_abilities(p: Pawtner, eco: Economy) -> void:
 
 
 func _on_ability_pressed(slot: String) -> void:
+	Sfx.ui("click", -6.0)
 	var m := MatchManager.current
 	if m == null or not m.is_buy_phase():
 		return
@@ -265,6 +266,7 @@ func _style_card(card: Button, text: String, bought: bool, equipped: bool, unaff
 # --- Acciones ---
 
 func _on_weapon_pressed(i: int) -> void:
+	Sfx.ui("click", -6.0)
 	var m := MatchManager.current
 	if m == null or not m.is_buy_phase():
 		return
@@ -278,6 +280,7 @@ func _on_weapon_pressed(i: int) -> void:
 
 ## `i` = -1 para «Sin escudo».
 func _on_shield_pressed(i: int) -> void:
+	Sfx.ui("click", -6.0)
 	var m := MatchManager.current
 	if m == null or not m.is_buy_phase():
 		return

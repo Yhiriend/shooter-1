@@ -4,6 +4,8 @@ extends Resource
 
 @export var display_name := "Arma"
 @export var price := 0
+## Sonido del disparo (receta en core/sfx.gd): "pistol", "shotgun" o "rifle".
+@export var sound := "pistol"
 
 @export_group("Daño")
 @export var damage := 30.0

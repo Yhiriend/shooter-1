@@ -62,6 +62,7 @@ func start_reload() -> void:
 		return
 	is_reloading = true
 	_reload_left = data.reload_time
+	Sfx.at("reload", _owner_pawtner.global_position, -6.0)
 	reload_started.emit()
 
 
@@ -118,6 +119,7 @@ func _fire() -> void:
 	bloom_deg = minf(bloom_deg + data.bloom_per_shot_deg, data.max_bloom_deg)
 	ammo_changed.emit(ammo, data.magazine)
 	fired.emit()
+	Sfx.at(data.sound, muzzle, -2.0)
 	if Perception.current:
 		Perception.current.emit_noise(_owner_pawtner, _owner_pawtner.global_position, data.noise_radius)
 	if ammo <= 0:

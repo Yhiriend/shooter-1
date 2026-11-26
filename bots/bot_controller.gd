@@ -26,6 +26,8 @@ enum State { ADVANCE, HOLD, COMBAT, INVESTIGATE, OBJECTIVE }
 @export var rescue_max_distance := 18.0
 
 const OBJECTIVE_EVAL_INTERVAL := 0.3
+## Antes de sembrar, los defensores no persiguen más allá de esta fila: aguantan su zona.
+const DEFENSE_MAX_ROW := 15
 
 var state := State.ADVANCE
 
@@ -46,6 +48,8 @@ var _objective_timer := 0.0
 ## Interacción a mantener al llegar al objetivo ("" = solo ir).
 var _objective_action := ""
 var _abilities := BotAbilities.new()
+## Atacante esperando en el punto de reunión a que el dúo entre junto.
+var _staging := false
 
 
 func setup(map: HuertoLunar) -> void:
@@ -80,6 +84,12 @@ func _physics_process(delta: float) -> void:
 		return
 
 	var enemy := _closest_visible_enemy()
+	if _should_plant_now(enemy):
+		# Ya en la maceta: sembrar mientras el compañero cubre (o si no hay nadie a la vista).
+		_pawtner.wants_interact = true
+		if enemy:
+			_pawtner.aim_point = enemy.global_position
+		return
 	if enemy:
 		if enemy != _target:
 			_target = enemy
@@ -122,6 +132,19 @@ func _setup_phase(delta: float) -> void:
 			State.HOLD:
 				_hold_left = maxf(_hold_left, 1.0)  # quedarse en el puesto hasta que empiece la acción
 	_abilities.think(self, _pawtner, delta)
+
+
+func _should_plant_now(enemy: Pawtner) -> bool:
+	var m := MatchManager.current
+	if m == null or not _pawtner.carrying_seed or not m.attack_go \
+			or _pawtner.available_interaction != MatchManager.ACTION_PLANT:
+		return false
+	if enemy == null:
+		return true
+	for mate in m.team_members(_pawtner.team):
+		if mate != _pawtner and mate.is_alive:
+			return true
+	return false
 
 
 # --- Consultas para BotAbilities ---
@@ -179,8 +202,8 @@ func _current_objective() -> Dictionary:
 				return {"pos": plush.global_position, "action": MatchManager.ACTION_RESCUE}
 
 	if m.is_attacker(me):
-		# 2. Sembrar si lleva la semilla.
-		if me.carrying_seed and m.phase == MatchManager.Phase.ACTION:
+		# 2. Sembrar si lleva la semilla (cuando el dúo ya entra a la maceta).
+		if me.carrying_seed and m.phase == MatchManager.Phase.ACTION and m.attack_go:
 			return {"pos": m.site_point(m.target_site), "action": MatchManager.ACTION_PLANT}
 		# 3. Recoger la semilla caída si es el atacante vivo más cercano.
 		if m.seed.state == MoonSeed.State.DROPPED and _is_closest_teammate_to(m.seed.global_position):
@@ -192,6 +215,10 @@ func _current_objective() -> Dictionary:
 
 
 func _evaluate_objective() -> void:
+	var m := MatchManager.current
+	if _staging and m and m.attack_go:
+		# Orden de entrar: dejar el punto de reunión e ir a la maceta.
+		_choose_new_goal()
 	var obj := _current_objective()
 	if obj.is_empty():
 		if state == State.OBJECTIVE:
@@ -252,6 +279,14 @@ func _combat(delta: float) -> void:
 	var err := lerpf(_aim_error_start, _aim_error_start * 0.25, settle)
 	var aim_dir := to_target.normalized().rotated(Vector3.UP, deg_to_rad(err))
 	_pawtner.aim_point = _pawtner.global_position + aim_dir * dist
+
+	if dist > engage and _should_hold_ground(_target.global_position):
+		# Defensor: no sale a buscar al rival; aguanta el ángulo y espera a que entre.
+		if _target_time >= reaction_time and dist <= _pawtner.weapon.data.max_range:
+			_burst_clock += delta
+			if fmod(_burst_clock, burst_time + burst_pause) < burst_time:
+				_pawtner.wants_shoot = true
+		return
 
 	if dist > engage:
 		# Lejos: acercarse corriendo sin disparar (correr abre el cono).
@@ -320,9 +355,14 @@ func _choose_new_goal() -> void:
 	if _map == null:
 		return
 	var m := MatchManager.current
+	_staging = false
 	if m and m.plant and m.is_attacker(_pawtner):
 		# Con la semilla sembrada, los atacantes la protegen desde cerca.
 		_goal = _map.random_free_point_near(m.plant.global_position, 3)
+	elif m and m.is_attacker(_pawtner) and not m.attack_go:
+		# Primero reunirse con el compañero antes de entrar.
+		_staging = true
+		_goal = _map.random_free_point_near(m.attack_stage, 1)
 	elif goal_zones.is_empty():
 		return
 	else:
@@ -332,7 +372,18 @@ func _choose_new_goal() -> void:
 	_set_path_to(_goal)
 
 
+## Defensor antes de la siembra con el rival (o el ruido) fuera de su zona: no ir.
+func _should_hold_ground(pos: Vector3) -> bool:
+	var m := MatchManager.current
+	if m == null or m.is_attacker(_pawtner) or m.phase != MatchManager.Phase.ACTION:
+		return false
+	return _map.world_to_cell(pos).y > DEFENSE_MAX_ROW
+
+
 func _investigate(pos: Vector3) -> void:
+	if _should_hold_ground(pos):
+		_choose_new_goal()
+		return
 	state = State.INVESTIGATE
 	_goal = pos
 	_set_path_to(pos)

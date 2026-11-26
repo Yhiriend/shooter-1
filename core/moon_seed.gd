@@ -32,6 +32,8 @@ func _ready() -> void:
 
 
 func give_to(p: Pawtner) -> void:
+	if state == State.DROPPED:
+		Sfx.at("seed_pick", p.global_position)
 	if carrier:
 		carrier.carrying_seed = false
 	carrier = p

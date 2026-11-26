@@ -65,6 +65,7 @@ func _card(c: CharacterData) -> Button:
 	b.add_theme_stylebox_override("hover", hover)
 	b.add_theme_stylebox_override("pressed", hover)
 	b.pressed.connect(func() -> void:
+		Sfx.ui("click", -6.0)
 		picked.emit(c)
 		queue_free())
 	return b

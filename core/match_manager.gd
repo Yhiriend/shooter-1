@@ -6,6 +6,10 @@ extends Node
 signal round_started(round_number: int)
 signal buy_phase_started
 signal round_ended(winner: int, reason: String)
+## Eliminación (para el registro de bajas del HUD). `killer` puede ser null.
+signal pawtner_killed(killer: Pawtner, victim: Pawtner)
+## Terminó la partida: el HUD muestra los resultados.
+signal match_finished(winner: int)
 
 enum Phase { BUY, ACTION, PLANTED, ROUND_END, MATCH_END }
 
@@ -27,6 +31,19 @@ const HUG_NOISE_RADIUS := 15.0
 
 ## Celdas de los tréboles (mitad de cada pasillo), en la cuadrícula de Huerto Lunar.
 const CLOVER_CELLS: Array[Vector2i] = [Vector2i(6, 17), Vector2i(33, 17)]
+
+## Plan de ataque de los bots: puntos donde se reúnen antes de entrar a cada maceta.
+## Por el pasillo de la maceta o por la rampa central (ver LAYOUT de Huerto Lunar).
+const STAGE_CELLS := {
+	"A": [Vector2i(6, 20), Vector2i(19, 20)],
+	"B": [Vector2i(33, 20), Vector2i(20, 20)],
+}
+## Si atacas tú, a esta distancia de una maceta tu compañero entra contigo.
+const PLAYER_COMMIT_RADIUS := 9.0
+## Distancia a la que se considera que el dúo atacante ya está reunido.
+const STAGE_GATHER_RADIUS := 4.5
+## Si a la ronda le queda menos que esto, los atacantes entran aunque no estén reunidos.
+const STAGE_DEADLINE := 50.0
 
 const ACTION_PLANT := "Sembrar"
 const ACTION_UPROOT := "Arrancar"
@@ -52,6 +69,11 @@ var attacker_team := 0
 var target_site := "A"
 var last_winner := -1
 var last_reason := ""
+## Punto de reunión de los atacantes y si ya dieron la orden de entrar.
+var attack_stage := Vector3.ZERO
+var attack_go := false
+## Estadísticas de la partida por Pawtner: kills, deaths, plants, uproots, rescues.
+var stats := {}
 
 var player: Pawtner
 var pawtners: Array[Pawtner] = []
@@ -107,6 +129,12 @@ func _ready() -> void:
 	shop.name = "Shop"
 	shop.touch_controls = get_node(touch_controls_path) as TouchControls
 	hud.add_child(shop)
+	var sfx := Sfx.new()
+	sfx.name = "Sfx"
+	add_child(sfx)
+	var pause := PauseMenu.new()
+	pause.name = "PauseMenu"
+	hud.add_child(pause)
 
 	var picked := await _pick_character(hud)
 	_spawn_teams(picked)
@@ -178,9 +206,60 @@ func _start_match() -> void:
 	round_number = 0
 	attacker_team = 0
 	_prefers_shotgun.clear()
+	stats.clear()
 	for p in pawtners:
 		_prefers_shotgun[p] = randf() < bot_shotgun_preference
+		stats[p] = {"kills": 0, "deaths": 0, "plants": 0, "uproots": 0, "rescues": 0}
 	_start_round()
+
+
+func _stat(p: Pawtner, key: String) -> void:
+	if p and stats.has(p):
+		stats[p][key] += 1
+
+
+## Revancha: misma alineación, partida nueva.
+func rematch() -> void:
+	get_tree().paused = false
+	_start_match()
+
+
+## Vuelve a la selección de Pawtner y empieza una partida nueva.
+func change_pawtner() -> void:
+	get_tree().paused = false
+	_teardown()
+	var hud := get_node("HUD") as CanvasLayer
+	var picked := await _pick_character(hud)
+	_spawn_teams(picked)
+	_start_match()
+
+
+## Quita a todos los Pawtners y los objetos de la partida.
+func _teardown() -> void:
+	phase = Phase.MATCH_END
+	time_left = INF
+	_map.set_barriers_active(false)
+	for node in get_tree().get_nodes_in_group(AbilityEffects.GROUP):
+		node.queue_free()
+	for plush in plushes:
+		plush.queue_free()
+	plushes.clear()
+	if plant:
+		plant.queue_free()
+		plant = null
+	seed.clear()
+	for c: Variant in _clovers:
+		if is_instance_valid(c):
+			(c as Node).queue_free()
+	_clovers.clear()
+	for p in pawtners:
+		p.queue_free()
+	pawtners.clear()
+	player = null
+	var touch := get_node(touch_controls_path) as TouchControls
+	touch.interact_button.visible = false
+	for button: TouchButton in touch.ability_buttons.values():
+		button.visible = false
 
 
 ## Inicio de partida y cambio de lado: 800 croquetas, pistola y sin escudo para todos.
@@ -202,6 +281,11 @@ func _start_round() -> void:
 		# Ronda decisiva con 4–4: el lado se sortea.
 		attacker_team = randi() % 2
 	target_site = ["A", "B"].pick_random()
+	# Ruta de los bots atacantes: 65 % por el pasillo de la maceta, 35 % por la rampa central.
+	var cells: Array = STAGE_CELLS[target_site]
+	var stage_cell: Vector2i = cells[0] if randf() < 0.65 else cells[1]
+	attack_stage = _map.cell_to_world(stage_cell.x, stage_cell.y)
+	attack_go = false
 	last_winner = -1
 	last_reason = ""
 
@@ -252,6 +336,7 @@ func _start_round() -> void:
 
 	_camera.set_target(player)
 	_set_phase(Phase.BUY, BUY_TIME)
+	Sfx.ui("round_start", -4.0)
 	round_started.emit(round_number)
 	buy_phase_started.emit()
 
@@ -283,7 +368,9 @@ func _physics_process(delta: float) -> void:
 		Phase.BUY:
 			if time_left <= 0.0:
 				_set_phase(Phase.ACTION, ROUND_TIME)
+				Sfx.ui("round_start", -2.0)
 		Phase.ACTION:
+			_update_attack_plan()
 			_update_seed_pickup()
 			_update_interactions(delta)
 			_check_elimination()
@@ -296,13 +383,66 @@ func _physics_process(delta: float) -> void:
 		Phase.ROUND_END:
 			if time_left <= 0.0:
 				if score.max() >= ROUNDS_TO_WIN:
-					_set_phase(Phase.MATCH_END, MATCH_END_TIME)
+					_finish_match()
 				else:
 					_start_round()
 		Phase.MATCH_END:
+			# Con pantalla, la partida nueva la pide el jugador (Revancha / Cambiar Pawtner).
 			if time_left <= 0.0:
 				_start_match()
 	_update_plushes(delta)
+
+
+func _finish_match() -> void:
+	var headless := DisplayServer.get_name() == "headless"
+	_set_phase(Phase.MATCH_END, MATCH_END_TIME if headless else INF)
+	match_finished.emit(0 if score[0] > score[1] else 1)
+	if not headless:
+		# Un momento para ver el último cartel antes de los resultados.
+		await get_tree().create_timer(2.0).timeout
+		if phase == Phase.MATCH_END and player:
+			var screen := EndScreen.new()
+			screen.name = "EndScreen"
+			get_node("HUD").add_child(screen)
+
+
+## Los atacantes bot entran cuando el dúo está reunido en el punto de ataque,
+## cuando uno de ellos ya está peleando o cuando se acaba el tiempo.
+func _update_attack_plan() -> void:
+	if attack_go:
+		return
+	# Si atacas tú, tu compañero bot sigue tu decisión: entra a la maceta a la que te acerques.
+	if is_attacker(player) and player.is_alive:
+		for site in ["A", "B"]:
+			if _flat_distance(player.global_position, site_point(site)) <= PLAYER_COMMIT_RADIUS:
+				_retarget_attack(site)
+				attack_go = true
+				return
+	var gathered := true
+	for p in team_members(attacker_team):
+		if not p.is_alive or p == player:
+			continue
+		if _flat_distance(p.global_position, attack_stage) > STAGE_GATHER_RADIUS:
+			gathered = false
+		var bot := p.get_node_or_null("BotController") as BotController
+		if bot and bot.state == BotController.State.COMBAT:
+			attack_go = true
+			return
+	# Con un humano atacando, el bot espera a que elijas maceta (o al límite de tiempo).
+	if is_attacker(player) and player.is_alive:
+		gathered = false
+	if gathered or time_left < STAGE_DEADLINE:
+		attack_go = true
+
+
+func _retarget_attack(site: String) -> void:
+	if site == target_site:
+		return
+	target_site = site
+	for p in team_members(attacker_team):
+		var bot := p.get_node_or_null("BotController") as BotController
+		if bot:
+			bot.goal_zones = PackedStringArray([site])
 
 
 func _end_round(winner: int, reason: String) -> void:
@@ -316,6 +456,8 @@ func _end_round(winner: int, reason: String) -> void:
 		p.is_interacting = false
 		p.available_interaction = ""
 	_set_phase(Phase.ROUND_END, ROUND_END_TIME)
+	if player:
+		Sfx.ui("win" if winner == player.team else "lose", -3.0)
 	round_ended.emit(winner, reason)
 
 
@@ -345,6 +487,8 @@ func _update_seed_pickup() -> void:
 
 func _plant_seed(p: Pawtner) -> void:
 	p.kit.add_ult_point()
+	_stat(p, "plants")
+	Sfx.ui("plant", -2.0)
 	var site := _map.site_at(p.global_position)
 	seed.clear()
 	plant = MoonPlant.new()
@@ -399,6 +543,7 @@ func _update_interactions(delta: float) -> void:
 				if not hugged.has(plush):
 					hugged.append(plush)
 					plush.hug_progress += delta
+					plush.rescuer = p
 				p.interaction_progress = plush.hug_progress / RESCUE_TIME
 				_emit_hug_noise(p, delta)
 
@@ -420,7 +565,9 @@ func _update_interactions(delta: float) -> void:
 			for p in pawtners:
 				if p.is_interacting and p.available_interaction == ACTION_UPROOT:
 					p.kit.add_ult_point()
+					_stat(p, "uproots")
 			economy.add_team(pawtners, defender_team(), Economy.OBJECTIVE_REWARD)
+			Sfx.ui("uproot", -2.0)
 			_end_round(defender_team(), "¡Planta arrancada!")
 
 
@@ -443,6 +590,8 @@ func _plush_in_reach(p: Pawtner) -> Plush:
 
 func _rescue(plush: Plush) -> void:
 	rescue_used[plush.pawtner.team] = true
+	Sfx.at("chime", plush.global_position, 2.0)
+	_stat(plush.rescuer, "rescues")
 	plush.pawtner.revive(RESCUE_HEALTH)
 	if plush.pawtner == player:
 		_camera.set_target(player)
@@ -467,6 +616,9 @@ func _on_pawtner_died(victim: Pawtner, killer: Pawtner) -> void:
 	if killer and killer.team != victim.team:
 		economy.add(killer, Economy.KILL_REWARD)
 		killer.kit.on_kill()
+		_stat(killer, "kills")
+	_stat(victim, "deaths")
+	pawtner_killed.emit(killer, victim)
 	if victim.carrying_seed:
 		seed.drop(victim.global_position)
 	if phase in [Phase.ACTION, Phase.PLANTED]:

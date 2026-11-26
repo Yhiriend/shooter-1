@@ -356,6 +356,9 @@ func take_damage(amount: float, source: Pawtner) -> void:
 		# El escudo se rompió: deja de reducir daño.
 		clear_armor()
 	health_changed.emit(health, shield)
+	Sfx.at("hit", global_position, -4.0)
+	if source and MatchManager.current and source == MatchManager.current.player:
+		Sfx.ui("hit_confirm", -10.0)
 	if health <= 0.0:
 		_die(source)
 
@@ -427,6 +430,7 @@ func _clear_statuses() -> void:
 
 
 func _die(killer: Pawtner) -> void:
+	Sfx.at("death", global_position, 2.0)
 	is_alive = false
 	health = 0.0
 	death_position = global_position
@@ -464,6 +468,7 @@ func _emit_footsteps(delta: float) -> void:
 		_footstep_timer = FOOTSTEP_INTERVAL
 		if Perception.current:
 			Perception.current.emit_noise(self, global_position, FOOTSTEP_NOISE_RADIUS)
+		Sfx.at("step", global_position, -14.0, 0.2)
 
 
 func _apply_team_color() -> void:

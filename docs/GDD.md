@@ -233,10 +233,10 @@ Los bots completan los equipos para que un solo desarrollador pueda probar todas
 - **Misma precisión:** disparan con el mismo cono que el jugador, así que también deben frenar para acertar.
 - **Comportamiento por estados:**
     1. *Compra:* elige arma y habilidades según sus croquetas (reglas simples: eco, compra parcial, compra completa).
-    2. *Avance:* va por la red de navegación hacia la maceta elegida (atacantes) o hacia su posición de guardia (defensores).
+    2. *Avance:* los atacantes eligen ruta (65 % por el pasillo de la maceta, 35 % por la rampa central) y se reúnen en un punto antes de entrar; entran juntos cuando el dúo está reunido, cuando uno ya pelea o cuando quedan 50 s. Si atacas tú, tu compañero bot espera en el punto y entra contigo cuando te acercas a una maceta (a menos de 9 m). Los defensores van a su maceta y, antes de la siembra, no persiguen más allá de la fila 15: aguantan el ángulo.
     3. *Combate:* al ver a un enemigo, frena, apunta con un tiempo de reacción y dispara en ráfagas; busca cobertura si pierde vida.
     4. *Investigar:* al ver ondas de sonido, va hacia ellas con cuidado (caminando).
-    5. *Objetivo:* siembra si lleva la semilla; arranca la planta si defiende; protege a quien siembra o arranca.
+    5. *Objetivo:* siembra si lleva la semilla (en la maceta siembra aunque haya rivales a la vista si su compañero vive y lo cubre; solo, espera a no ver a nadie); arranca la planta si defiende; protege a quien siembra o arranca.
     6. *Rescate:* si su compañero cae y no hay enemigos a la vista, va a abrazar el peluche.
     7. *Habilidades:* cada habilidad trae una regla de uso simple (por ejemplo, la Nube de bambú se lanza entre el bot y el enemigo visto).
 - **Dificultad ajustable:** tiempo de reacción (0,25–0,6 s), error de puntería extra y agresividad. Sirve para probar el balance contra bots fáciles y difíciles.
@@ -340,6 +340,7 @@ Todo debe verse tierno de lejos y leerse claro en medio de un tiroteo. Si hay qu
 - **Muerte tierna:** el animal se desinfla en una nube de pelusa y queda su peluche. Nada de sangre.
 - **Feedback:** números de daño con rebote, pequeño temblor de cámara, destello blanco al recibir un impacto.
 - **Audio:** pasos distintos por animal (patitas, saltitos, pisadas pesadas). Cada habilidad suena distinto para aliados y enemigos. Música tranquila en la fase de compra y más intensa al sembrar.
+- **Sonido provisional (hoy):** todo se sintetiza al arrancar en `core/sfx.gd`, sin archivos de audio: disparo propio de cada arma, recarga, impactos, caídas, pasos, un sonido por habilidad, trampa, cascabel, avisos de ronda, siembra, arrancado, victoria y derrota, clics de la interfaz y una música ambiental suave en bucle. Los sonidos del mundo se oyen más fuertes cerca y hacia su lado. Se reemplazarán por audio final en la fase de arte.
 - **UI:** redondeada y con iconos de patitas; nombre, vida, escudo y munición flotan sobre el personaje, como en la referencia.
 
 ## Arquitectura técnica en Godot 4
@@ -498,6 +499,17 @@ Hecho de la fase de semanas 6–7, parte 1 (los 4 Pawtners):
 - [x] Parte 2: bots que compran cargas y usan habilidades con reglas por efecto (`BotAbilities`): cascabel y miel en combate, nube o muro al quedar heridos o mientras siembran/arrancan, impulso y madriguera para escapar, trampa y vigía al esperar, baño termal para curar, Calma total para revivir
 - [x] Definitiva más alcanzable: 5 puntos (Capi 4) y se conserva al cambiar de lado
 - [ ] Hito 2: partida 2v2 completa contra bots en el teléfono
+
+Hecho para el Hito 2 (partida completa):
+
+- [x] Bots atacantes con plan: ruta, punto de reunión y entrada en dúo; el portador siembra bajo la cobertura de su compañero
+- [x] Bots defensores que aguantan su zona antes de la siembra en vez de salir a perseguir
+- [x] Tu compañero bot sigue tu decisión cuando atacas (entra a la maceta a la que te acercas)
+- [x] Registro de bajas arriba a la izquierda (aliados en menta, rivales en coral; se limpia cada ronda)
+- [x] Pantalla de resultados: victoria o derrota, marcador y estadísticas por Pawtner (bajas, caídas, siembras, arranques, rescates), con «Revancha» y «Cambiar Pawtner»
+- [x] Pausa: botón «II», tecla Esc o botón «atrás» de Android; «Reanudar» o «Abandonar partida» (vuelve a elegir Pawtner)
+- [x] Sonido básico sintetizado (efectos de armas, habilidades, partida e interfaz, y música ambiental)
+- [x] Simulación de 4 bots: se siembra en cerca de la mitad de las rondas; las rondas terminan por eliminación, floración, arrancado y tiempo
 
 ## Riesgos y preguntas abiertas
 

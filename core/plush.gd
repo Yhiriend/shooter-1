@@ -7,6 +7,8 @@ var pawtner: Pawtner
 var time_left := 8.0
 ## Segundos de abrazo acumulados (se reinicia si nadie lo abraza).
 var hug_progress := 0.0
+## Quien lo está abrazando (para las estadísticas).
+var rescuer: Pawtner
 
 var _base_scale := Vector3.ONE
 

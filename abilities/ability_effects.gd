@@ -75,6 +75,7 @@ static func cast(p: Pawtner, a: AbilityData, target: Vector3) -> CastResult:
 			p.start_leap(landing, LEAP_TIME, func() -> void:
 				for enemy in _enemies_near(team, landing, r):
 					enemy.apply_stun(stun)
+				Sfx.at("slam", landing, 2.0)
 				spawn_pulse(landing, r, Color(1.0, 0.9, 0.5)))
 		AbilityData.Effect.BAMBOO_WALL:
 			# Se levanta delante, perpendicular a la dirección elegida.

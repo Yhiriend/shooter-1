@@ -15,7 +15,16 @@ const INTERACT_LABELS := {
 	"Rescatar": "Rescatando...",
 }
 
+const COLOR_ALLY := Color(0.55, 0.88, 0.78)
+const COLOR_RIVAL := Color(1.0, 0.62, 0.55)
+## Cuánto se ve cada línea del registro de bajas, y cuántas a la vez.
+const FEED_TIME := 6.0
+const FEED_LINES := 4
+
 var _font: Font
+## Registro de bajas: {"killer", "victim", "killer_team", "victim_team", "time"}.
+var _feed: Array[Dictionary] = []
+var _connected: MatchManager
 
 
 func _ready() -> void:
@@ -24,8 +33,28 @@ func _ready() -> void:
 	_font = ThemeDB.fallback_font
 
 
-func _process(_delta: float) -> void:
+func _process(delta: float) -> void:
+	var m := MatchManager.current
+	if m and _connected != m:
+		_connected = m
+		m.pawtner_killed.connect(_on_killed)
+		m.round_started.connect(func(_n: int) -> void: _feed.clear())
+	for e in _feed:
+		e["time"] -= delta
+	_feed = _feed.filter(func(e: Dictionary) -> bool: return e["time"] > 0.0)
 	queue_redraw()
+
+
+func _on_killed(killer: Pawtner, victim: Pawtner) -> void:
+	_feed.append({
+		"killer": killer.display_name if killer else "",
+		"killer_team": killer.team if killer else -1,
+		"victim": victim.display_name,
+		"victim_team": victim.team,
+		"time": FEED_TIME,
+	})
+	while _feed.size() > FEED_LINES:
+		_feed.pop_front()
 
 
 func _draw() -> void:
@@ -62,8 +91,17 @@ func _draw() -> void:
 			var won := m.score[me] > m.score[1 - me]
 			_text_centered("¡Victoria!" if won else "Derrota", Vector2(w * 0.5, screen.y * 0.3), 56,
 				COLOR_WIN if won else COLOR_LOSE)
-			_text_centered("%d – %d · nueva partida en %d" % [m.score[me], m.score[1 - me], ceili(m.time_left)],
-				Vector2(w * 0.5, screen.y * 0.3 + 50), 26)
+			_text_centered("%d – %d" % [m.score[me], m.score[1 - me]], Vector2(w * 0.5, screen.y * 0.3 + 50), 26)
+
+	# Registro de bajas, arriba a la izquierda (debajo del botón de pausa).
+	var y := 120.0
+	for e in _feed:
+		var x := 24.0
+		if e["killer"] != "":
+			x = _text_part(e["killer"], Vector2(x, y), 22, _team_color(e["killer_team"], me))
+			x = _text_part("  »  ", Vector2(x, y), 22, COLOR_TEXT)
+		_text_part(e["victim"], Vector2(x, y), 22, _team_color(e["victim_team"], me))
+		y += 30.0
 
 	if m.player.carrying_seed:
 		_text_centered("Llevas la Semilla Lunar", Vector2(w * 0.5, 116), 24, COLOR_SEED)
@@ -97,6 +135,16 @@ func _draw() -> void:
 		var label: String = INTERACT_LABELS.get(m.player.available_interaction, "")
 		_text_centered(label, Vector2(w * 0.5, screen.y * 0.62), 26)
 		_bar(Rect2(w * 0.5 - 140, screen.y * 0.62 + 12, 280, 16), m.player.interaction_progress, COLOR_SEED)
+
+
+func _team_color(team: int, me: int) -> Color:
+	return COLOR_ALLY if team == me else COLOR_RIVAL
+
+
+## Dibuja un texto y devuelve dónde termina (para encadenar colores en una línea).
+func _text_part(text: String, baseline: Vector2, font_size: int, color: Color) -> float:
+	_text(text, baseline, font_size, color)
+	return baseline.x + _font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size).x
 
 
 func _clock(seconds: float) -> String:

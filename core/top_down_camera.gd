@@ -30,7 +30,7 @@ func set_target(target: Pawtner) -> void:
 
 
 func _process(delta: float) -> void:
-	if _target == null:
+	if _target == null or not is_instance_valid(_target):
 		return
 	if not _initialized:
 		_focus = _target.global_position

@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1_data")
+sound = "rifle"
 display_name = "Rifle de semillas"
 price = 1700
 damage = 50.0

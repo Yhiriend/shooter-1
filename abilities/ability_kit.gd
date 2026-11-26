@@ -118,5 +118,6 @@ func cast(slot: String, aim_point: Vector3) -> bool:
 	else:
 		charges[slot] -= 1
 	changed.emit()
+	Sfx.ability(a.effect, slot == "X", _pawtner.global_position)
 	ability_cast.emit(slot, a)
 	return true

@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1_data")
+sound = "shotgun"
 display_name = "Escopeta de confeti"
 price = 900
 damage = 17.0

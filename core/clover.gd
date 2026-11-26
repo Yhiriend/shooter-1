@@ -38,6 +38,7 @@ func _physics_process(delta: float) -> void:
 	for p in Perception.current.pawtners:
 		if p.is_alive and Vector2(p.global_position.x - global_position.x, p.global_position.z - global_position.z).length() <= PICKUP_RADIUS:
 			p.kit.add_ult_point()
+			Sfx.at("clover", global_position)
 			collected.emit(p)
 			queue_free()
 			return

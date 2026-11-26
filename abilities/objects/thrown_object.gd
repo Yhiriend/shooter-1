@@ -62,6 +62,11 @@ func _physics_process(delta: float) -> void:
 	if not hit.is_empty():
 		var normal: Vector3 = hit["normal"]
 		normal.y = 0.0
+		if normal.length_squared() < 0.0001:
+			# Golpe por arriba (tapa de una cobertura): rebota hacia atrás.
+			normal = -Vector3(_velocity.x, 0.0, _velocity.z)
+			if normal.length_squared() < 0.0001:
+				normal = Vector3.BACK
 		global_position = (hit["position"] as Vector3) + normal.normalized() * 0.2
 		if kind == Kind.BELL:
 			_finish()
@@ -103,4 +108,5 @@ func _finish() -> void:
 					if to_bell.length() < 1.0 or p.facing().angle_to(to_bell.normalized()) <= BELL_LOOK_HALF_ANGLE:
 						p.apply_blind(duration)
 	AbilityEffects.spawn_pulse(global_position, radius, Color(1.0, 0.6, 0.75) if kind == Kind.YARN else Color(1, 1, 0.8))
+	Sfx.at("bell" if kind == Kind.BELL else "chime", global_position)
 	queue_free()

@@ -116,6 +116,7 @@ func _check_trap() -> void:
 	for p in Perception.current.pawtners:
 		if p.is_alive and p.team != team and _flat_distance(p.global_position) <= radius:
 			p.apply_root(amount)
+			Sfx.at("trap", global_position, 2.0)
 			Perception.current.reveal_to_team(team, p, TRAP_REVEAL_TIME)
 			queue_free()
 			return
