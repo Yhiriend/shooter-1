@@ -7,6 +7,8 @@ extends RefCounted
 const THINK_INTERVAL := 0.4
 ## Pausa mínima entre dos usos de la misma ranura.
 const SLOT_COOLDOWN := 6.0
+## Lo único que preparan los bots durante la compra.
+const SETUP_EFFECTS: Array[AbilityData.Effect] = [AbilityData.Effect.ORANGE_TRAP, AbilityData.Effect.WATCHER]
 
 var _think_left := 0.0
 var _cooldowns := {}  # slot -> segundos
@@ -26,9 +28,11 @@ func think(bot: BotController, p: Pawtner, delta: float) -> void:
 		return
 	_think_left = THINK_INTERVAL
 	var m := MatchManager.current
-	if m == null or not (m.phase in [MatchManager.Phase.ACTION, MatchManager.Phase.PLANTED]):
+	if m == null or not (m.phase in [MatchManager.Phase.ACTION, MatchManager.Phase.PLANTED, MatchManager.Phase.BUY]):
 		return
 	for a in p.kit.character.abilities:
+		if p.setup_lock and not (a.effect in SETUP_EFFECTS):
+			continue
 		if _ready(p, a.slot) and _try(bot, p, a, m):
 			_cooldowns[a.slot] = SLOT_COOLDOWN
 			return  # una habilidad por decisión

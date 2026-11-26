@@ -116,7 +116,7 @@ Cada animal tiene 100 de vida, sin regeneración, y un rifle mata en unos 4 impa
 
 **Estructura**
 
-1. Fase de compra: 15 s, con barreras que impiden salir del spawn.
+1. Fase de compra: 15 s. Cada equipo se mueve por su lado del mapa, cerrado por una barrera translúcida, para colocarse y preparar trampas o vigías. No se puede disparar ni interactuar. Los defensores llegan hasta las dos macetas (filas 1–12); los atacantes, hasta la fila 21. Lo de en medio es tierra de nadie. Las barreras desaparecen al empezar la ronda.
 2. Ronda: 75 s para sembrar. Al sembrar, 40 s de crecimiento.
 3. Fin de ronda: 5 s con repetición de la última eliminación.
 4. Partida: gana quien llega a 5 rondas. Cambio de lado tras la ronda 4. Con 4–4 se juega una ronda decisiva y el lado se sortea.
@@ -208,7 +208,7 @@ Un toque corto sin arrastrar lanza las de dirección y área hacia donde mira el
 | --- | --- | --- | --- | --- |
 | Mochi | C | Ovillo rebotón | 200 | Ovillo que rebota en coberturas; al detenerse revela enemigos a 5 m durante 2 s |
 | Mochi | Q | Cascabel | 150 | Estalla y deja con 1 m de visión durante 1,5 s a los enemigos que lo estén mirando (no afecta a tu equipo) |
-| Mochi | E | Salto felino | Gratis | Impulso de 4 m; se recupera al conseguir 2 eliminaciones |
+| Mochi | E | Salto felino | Gratis | Impulso de 4 m; se recupera con cada eliminación |
 | Mochi | X | Ojos nocturnos | 5 pts | 8 s viendo las huellas de todo enemigo que corra, en todo el mapa |
 | Pip | C | Zanahoria señuelo | 100 | Genera ondas de pasos falsos durante 4 s |
 | Pip | Q | Tierra al aire | 200 | Golpe al suelo: enemigos a 3 m quedan lentos y con dispersión ×3 durante 1,5 s |
@@ -466,7 +466,7 @@ Hecho de la fase de semanas 2–3 (combate, visión y bots básicos):
 
 Hecho de la fase de semanas 4–5, parte 1 (rondas, Semilla Lunar y rescate):
 
-- [x] `MatchManager`: compra 15 s (congelados), ronda 75 s, fin de ronda 5 s; gana quien llega a 5; cambio de lado tras la ronda 4; ronda decisiva con lado sorteado
+- [x] `MatchManager`: compra 15 s (movimiento dentro de la zona propia, con barreras), ronda 75 s, fin de ronda 5 s; gana quien llega a 5; cambio de lado tras la ronda 4; ronda decisiva con lado sorteado
 - [x] Semilla Lunar: la lleva un atacante (alterna cada ronda), cae al morir y se recoge; sembrar 3 s dentro de una maceta
 - [x] Planta en 3 etapas (40 s), polen revelador en la etapa de tallo, arrancado 6 s (4 s entre dos) con progreso que decae
 - [x] Rescate de dúo: peluche 8 s, abrazo 3 s, revive con 30 de vida, una vez por equipo y ronda, hace ruido

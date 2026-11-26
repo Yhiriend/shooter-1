@@ -233,7 +233,7 @@ func _start_round() -> void:
 				p.clear_armor()
 				p.equip(Economy.PISTOL)
 			p.aim_point = p.global_position + Vector3(0.0, 0.0, -3.0 if role == 0 else 3.0)
-			p.frozen = true
+			p.frozen = false
 			var bot := p.get_node_or_null("BotController") as BotController
 			if bot:
 				bot.reset_for_round(_bot_zones(p, i))
@@ -266,9 +266,13 @@ func _bot_zones(p: Pawtner, index: int) -> PackedStringArray:
 func _set_phase(new_phase: Phase, duration: float) -> void:
 	phase = new_phase
 	time_left = duration
-	var freeze := new_phase in [Phase.BUY, Phase.ROUND_END, Phase.MATCH_END]
+	# En la compra todos se mueven dentro de su zona (barreras), sin disparar ni interactuar.
+	var freeze := new_phase in [Phase.ROUND_END, Phase.MATCH_END]
+	var setup := new_phase == Phase.BUY
 	for p in pawtners:
 		p.frozen = freeze
+		p.setup_lock = setup
+	_map.set_barriers_active(setup)
 
 
 func _physics_process(delta: float) -> void:
@@ -357,7 +361,7 @@ func _plant_seed(p: Pawtner) -> void:
 # --- Interacciones: sembrar, arrancar, rescatar ---
 
 func _available_interaction(p: Pawtner) -> String:
-	if not p.is_alive or p.frozen:
+	if not p.is_alive or p.frozen or p.setup_lock:
 		return ""
 	if not rescue_used[p.team] and _plush_in_reach(p) != null:
 		return ACTION_RESCUE
@@ -560,6 +564,16 @@ func _refresh_clovers() -> void:
 
 func is_buy_phase() -> bool:
 	return phase == Phase.BUY
+
+
+## Rol del Pawtner para las zonas del mapa: 0 = atacante, 1 = defensor.
+func role_of(p: Pawtner) -> int:
+	return 0 if is_attacker(p) else 1
+
+
+## ¿`pos` está en la zona de preparación del equipo de `p`?
+func in_setup_zone(p: Pawtner, pos: Vector3) -> bool:
+	return _map.in_setup_zone(role_of(p), pos)
 
 
 ## Regla simple de compra para bots: arma + escudo ligero si alcanza; si no, ahorra (eco).

@@ -71,6 +71,8 @@ var weapon: Weapon
 var kit: AbilityKit
 ## Congelado: no se mueve ni dispara (fase de compra y fin de ronda).
 var frozen := false
+## Fase de compra: puede moverse y preparar el terreno, pero no disparar ni interactuar.
+var setup_lock := false
 var carrying_seed := false
 ## Interacción disponible ahora ("Sembrar", "Arrancar", "Rescatar" o ""). La escribe MatchManager.
 var available_interaction := ""
@@ -112,7 +114,7 @@ var _gravity: float = ProjectSettings.get_setting("physics/3d/default_gravity")
 
 func _ready() -> void:
 	collision_layer = Layers.PAWTNER
-	collision_mask = Layers.WORLD | Layers.PAWTNER
+	collision_mask = Layers.PAWTNER_MASK
 	health = max_health
 	shield = start_shield
 	weapon = Weapon.new()
@@ -270,7 +272,7 @@ func _end_motion() -> void:
 	_motion = Motion.NONE
 	_motion_on_end = Callable()
 	velocity = Vector3.ZERO
-	collision_mask = Layers.WORLD | Layers.PAWTNER
+	collision_mask = Layers.PAWTNER_MASK
 	_visual.position.y = 0.0
 	_refresh_visual()
 	if on_end.is_valid():
@@ -373,7 +375,7 @@ func respawn_at(pos: Vector3, protect := true) -> void:
 	shield = start_shield
 	is_alive = true
 	collision_layer = Layers.PAWTNER
-	collision_mask = Layers.WORLD | Layers.PAWTNER
+	collision_mask = Layers.PAWTNER_MASK
 	_collision.set_deferred("disabled", false)
 	weapon.refill()
 	_protection_left = RESPAWN_PROTECTION if protect else 0.0
@@ -420,7 +422,7 @@ func _clear_statuses() -> void:
 	if _motion != Motion.NONE:
 		_motion = Motion.NONE
 		_motion_on_end = Callable()
-		collision_mask = Layers.WORLD | Layers.PAWTNER
+		collision_mask = Layers.PAWTNER_MASK
 		_visual.position.y = 0.0
 
 

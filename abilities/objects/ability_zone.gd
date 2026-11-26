@@ -47,7 +47,11 @@ func _ready() -> void:
 			mi.position.y = radius * 0.3
 			_material.albedo_color = Color(0.85, 0.95, 0.85, 0.9) if kind == Kind.SMOKE else Color(0.82, 0.78, 0.95, 0.9)
 			if Perception.current:
-				Perception.current.add_smoke(self, global_position, radius)
+				# La Siesta del bosque solo tapa a los rivales: el equipo de Tofu ve a través.
+				var own := team if kind == Kind.BIG_SMOKE else -1
+				Perception.current.add_smoke(self, global_position, radius, own)
+				if own >= 0 and own == Perception.current.local_team:
+					_material.albedo_color.a = 0.35
 		Kind.HONEY, Kind.HEAL:
 			var disc := CylinderMesh.new()
 			disc.top_radius = radius

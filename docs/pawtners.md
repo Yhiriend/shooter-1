@@ -38,6 +38,8 @@ Cada Pawtner tiene 4 habilidades, una por ranura:
 
 **Puntos de definitiva:** +1 por cada eliminación, por sembrar la semilla, por arrancar la planta y por recoger un trébol (hay uno en cada pasillo y reaparecen cada 2 rondas). Los puntos se conservan al cambiar de lado; las cargas de C y Q se reinician con la economía.
 
+**En la fase de compra** se pueden usar las habilidades de preparación (trampas, vigías, nubes, miel, muros, curación, señuelo, impulso, golpe al suelo). Lo colocado no sale de tu zona: si apuntas más allá de la barrera, cae en el borde. No se pueden usar la definitiva, la Madriguera, el Gran salto, el Ovillo, el Cascabel ni los Ojos nocturnos. Los bots defensores van a su maceta y dejan ahí su trampa o su vigía.
+
 **Modos de lanzamiento:**
 
 | Modo | En el móvil | En PC |
@@ -60,7 +62,7 @@ Un toque corto sin arrastrar lanza las de dirección y área hacia donde mira tu
 | --- | --- | --- | --- | --- |
 | C | **Ovillo rebotón** | Dirección | 200 (máx. 1) | Lanza un ovillo en línea recta, hasta 12 m. Rebota en coberturas hasta 3 veces (pierde un 20 % de velocidad en cada rebote). Al detenerse (1,4 s o tras el último rebote) revela a tu equipo a todos los enemigos a 5 m durante 2 s. |
 | Q | **Cascabel** | Área | 150 (máx. 2) | Lo lanzas a un punto a hasta 8 m; vuela 0,5 s (o hasta chocar) y estalla. Los enemigos a 8 m del estallido, con línea de vista y que lo estén mirando (dentro de 60° de su frente) quedan con 1 m de visión durante 1,5 s. No afecta a tu equipo. |
-| E | **Salto felino** | Instantánea | Gratis | Impulso de 4 m en 0,15 s hacia donde te mueves (si estás quieto, hacia donde miras). Choca con las paredes. Se recupera al conseguir 2 eliminaciones en la ronda. |
+| E | **Salto felino** | Instantánea | Gratis | Impulso de 4 m en 0,15 s hacia donde te mueves (si estás quieto, hacia donde miras). Choca con las paredes. Se recupera con cada eliminación en la ronda (si la gastaste). |
 | X | **Ojos nocturnos** | Instantánea | 5 puntos | Durante 8 s, tu equipo ve a todo enemigo que esté corriendo, en todo el mapa. Quien camina o está quieto no aparece. |
 
 **Consejos:** lanza el ovillo antes de entrar a una maceta para saber si hay alguien. El cascabel funciona mejor detrás de una esquina, donde el rival te está esperando.
@@ -95,7 +97,7 @@ Un toque corto sin arrastrar lanza las de dirección y área hacia donde mira tu
 | C | **Muro de bambú** | Dirección | 200 (máx. 1) | Levanta un muro de 6 m a 2,5 m delante de ti, perpendicular a la dirección elegida. Dura 10 s y tiene 300 de vida (las balas de cualquier equipo lo dañan). Bloquea movimiento, balas y visión. No se levanta dentro de coberturas ni de la valla. |
 | Q | **Charco de miel** | Área | 150 (máx. 1) | Charco de 3 m de radio a hasta 8 m, durante 6 s. Los enemigos dentro se mueven al 60 % y sus pasos hacen ruido aunque caminen. |
 | E | **Nube de bambú** | Área | Gratis (2.ª: 100) | Nube de 3 m de radio a hasta 10 m, durante 14 s. Corta la línea de vista: nadie ve a través. Desde dentro solo se ve a menos de 1 m. |
-| X | **Siesta del bosque** | Área | 5 puntos | Nube grande de 8 m de radio a hasta 12 m, durante 8 s. Bloquea la visión como la E y, además, los enemigos que están dentro quedan con 1 m de visión. |
+| X | **Siesta del bosque** | Área | 5 puntos | Nube grande de 8 m de radio a hasta 12 m, durante 8 s. Solo afecta a los rivales: a ellos les bloquea la visión como la E y, si están dentro, quedan con 1 m de visión. Tofu y su compañero ven a través de la nube (para ellos se dibuja casi transparente) y no quedan cegados dentro. |
 
 **Consejos:** una nube en la entrada de la maceta permite sembrar sin que te vean desde lejos. El muro sirve para taparte mientras arrancas la planta.
 

@@ -29,6 +29,14 @@ const COLOR_SITE := Color(0.78, 0.66, 0.95)
 const COLOR_MID := Color(0.75, 0.9, 0.8)
 const COLOR_DEF := Color(0.55, 0.88, 0.78)
 const COLOR_ATK := Color(1.0, 0.62, 0.55)
+const COLOR_BARRIER := Color(0.55, 0.85, 1.0, 0.35)
+
+## Barreras de la fase de compra (como en los tácticos: cada equipo prepara su lado).
+## Los defensores se mueven por las filas < DEF_BARRIER_ROW (llegan a ambas macetas);
+## los atacantes, por las filas >= ATK_BARRIER_ROW. Lo de en medio es tierra de nadie.
+const DEF_BARRIER_ROW := 13
+const ATK_BARRIER_ROW := 21
+const BARRIER_HEIGHT := 2.0
 
 const LAYOUT: Array[String] = [
 	"WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW",
@@ -69,6 +77,7 @@ var rows := 0
 var zone_centers := {}
 
 var _astar := AStarGrid2D.new()
+var _barriers: Array[StaticBody3D] = []
 
 
 func _enter_tree() -> void:
@@ -127,6 +136,30 @@ func zone_center(zone: String) -> Vector3:
 func spawn_point(role: int, index: int) -> Vector3:
 	var center := zone_center("a" if role == 0 else "d")
 	return center + Vector3((index - 0.5) * 3.0, 0.0, 0.0)
+
+
+## ¿`pos` está dentro de la zona de preparación del rol (0 = atacantes, 1 = defensores)?
+func in_setup_zone(role: int, pos: Vector3) -> bool:
+	var row := world_to_cell(pos).y
+	return row >= ATK_BARRIER_ROW if role == 0 else row < DEF_BARRIER_ROW
+
+
+## Lleva `pos` al borde de la zona de preparación del rol si se sale.
+func clamp_to_setup_zone(role: int, pos: Vector3) -> Vector3:
+	var edge := (ATK_BARRIER_ROW if role == 0 else DEF_BARRIER_ROW) - rows * 0.5
+	var margin := 0.3
+	if role == 0:
+		pos.z = maxf(pos.z, edge * CELL + margin)
+	else:
+		pos.z = minf(pos.z, edge * CELL - margin)
+	return pos
+
+
+## Activa o quita las barreras de la fase de compra.
+func set_barriers_active(active: bool) -> void:
+	for b in _barriers:
+		b.collision_layer = Layers.BARRIER if active else 0
+		b.visible = active
 
 
 ## Camino por la cuadrícula (A*) entre dos puntos del mundo, como puntos en el suelo.
@@ -236,6 +269,37 @@ func _build() -> void:
 				zone_centers[ch] = _average(list)
 			_:
 				push_warning("Huerto Lunar: carácter desconocido '%s'" % ch)
+	_add_barrier(DEF_BARRIER_ROW)
+	_add_barrier(ATK_BARRIER_ROW)
+
+
+## Pared translúcida en el borde superior de la fila `row`, de valla a valla.
+func _add_barrier(row: int) -> void:
+	var size := Vector3((cols - 2) * CELL, BARRIER_HEIGHT, 0.15)
+	var body := StaticBody3D.new()
+	body.name = "Barrier_%d" % row
+	body.collision_layer = Layers.BARRIER
+	body.collision_mask = 0
+	body.position = Vector3(0.0, BARRIER_HEIGHT * 0.5, (row - rows * 0.5) * CELL)
+	var shape := BoxShape3D.new()
+	shape.size = size
+	var col := CollisionShape3D.new()
+	col.shape = shape
+	body.add_child(col)
+	var mesh := BoxMesh.new()
+	mesh.size = size
+	var mi := MeshInstance3D.new()
+	mi.mesh = mesh
+	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	var mat := StandardMaterial3D.new()
+	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+	mat.albedo_color = COLOR_BARRIER
+	mi.material_override = mat
+	body.add_child(mi)
+	add_child(body)
+	_barriers.append(body)
 
 
 func _add_ground() -> void:

@@ -9,7 +9,16 @@ signal ability_cast(slot: String, ability: AbilityData)
 
 const SLOTS: Array[String] = ["C", "Q", "E", "X"]
 ## Mochi recupera su E al conseguir este número de eliminaciones.
-const DASH_RECHARGE_KILLS := 2
+const DASH_RECHARGE_KILLS := 1
+## En la fase de compra no se puede: la definitiva, saltar o excavar por encima de la barrera,
+## ni lanzar cosas que revelan o ciegan al otro lado.
+const SETUP_BLOCKED: Array[AbilityData.Effect] = [
+	AbilityData.Effect.BURROW,
+	AbilityData.Effect.BIG_LEAP,
+	AbilityData.Effect.YARN_REVEAL,
+	AbilityData.Effect.BELL_FLASH,
+	AbilityData.Effect.NIGHT_EYES,
+]
 
 var character: CharacterData
 var charges := {"C": 0, "Q": 0, "E": 0}
@@ -79,6 +88,8 @@ func can_cast(slot: String) -> bool:
 	var a := ability(slot)
 	if a == null or _pawtner == null or not _pawtner.can_act() or _pawtner.frozen:
 		return false
+	if _pawtner.setup_lock and (slot == "X" or a.effect in SETUP_BLOCKED):
+		return false
 	if slot == "X":
 		return is_ult_ready()
 	# El vigía de Capi se puede recoger aunque no queden cargas.
@@ -93,6 +104,10 @@ func cast(slot: String, aim_point: Vector3) -> bool:
 		return false
 	var a := ability(slot)
 	var target := AbilityEffects.clamp_target(_pawtner, aim_point, a.cast_range)
+	var m := MatchManager.current
+	if _pawtner.setup_lock and m:
+		# Lo que se coloca en la compra se queda dentro de tu zona.
+		target = HuertoLunar.current.clamp_to_setup_zone(m.role_of(_pawtner), target)
 	var result := AbilityEffects.cast(_pawtner, a, target)
 	if result == AbilityEffects.CastResult.FAILED:
 		return false

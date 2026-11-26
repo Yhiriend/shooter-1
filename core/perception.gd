@@ -109,8 +109,9 @@ func reveal_to_team(team: int, target: Pawtner, seconds: float) -> void:
 	forced[target] = maxf(forced.get(target, 0.0), seconds)
 
 
-func add_smoke(node: Node, center: Vector3, radius: float) -> void:
-	_smokes.append({"node": node, "center": center, "radius": radius})
+## `see_through_team`: equipo que ve a través de la nube (-1 = nadie; la de la X de Tofu, su equipo).
+func add_smoke(node: Node, center: Vector3, radius: float, see_through_team := -1) -> void:
+	_smokes.append({"node": node, "center": center, "radius": radius, "team": see_through_team})
 
 
 func remove_smoke(node: Node) -> void:
@@ -136,8 +137,9 @@ func emit_fake_noise(owner_team: int, pos: Vector3, radius: float) -> void:
 
 
 ## ¿Hay línea de vista entre dos puntos? (coberturas altas, muros y nubes la cortan)
-func line_clear(from: Vector3, to: Vector3) -> bool:
-	return _line_clear(from, to)
+## `team`: quien mira (las nubes de su propia definitiva no le tapan); -1 = cualquiera.
+func line_clear(from: Vector3, to: Vector3, team := -1) -> bool:
+	return _line_clear(from, to, team)
 
 
 func is_point_visible_to_local(point: Vector3) -> bool:
@@ -204,7 +206,7 @@ func _update_team_vision() -> void:
 					continue
 				if member.global_position.distance_to(enemy.global_position) > _member_vision_radius(member):
 					continue
-				if _line_clear(member.eye_position(), enemy.eye_position()):
+				if _line_clear(member.eye_position(), enemy.eye_position(), team):
 					seen[enemy] = true
 					break
 			if not seen.has(enemy) and _watchers_see(team, enemy.eye_position()):
@@ -242,7 +244,7 @@ func _reveal_fog_from(eye: Vector3, radius: float, dir: Vector3, half_angle: flo
 			if eye.distance_to(point) > radius or not _in_cone(eye, point, dir, half_angle):
 				continue
 			# Las celdas de cobertura alta se marcan visibles: el rayo chocaría con ellas mismas.
-			if _map.is_cell_vision_blocker(cell) or _line_clear(eye, point):
+			if _map.is_cell_vision_blocker(cell) or _line_clear(eye, point, local_team):
 				_fog_target[idx] = 1.0
 
 
@@ -261,13 +263,13 @@ func _watchers_see(team: int, point: Vector3) -> bool:
 		var node: Node3D = w["node"]
 		var from := node.global_position
 		if from.distance_to(point) <= w["radius"] and _in_cone(from, point, w["dir"], w["half_angle"]) \
-				and _line_clear(from, point):
+				and _line_clear(from, point, team):
 			return true
 	return false
 
 
-func _line_clear(from: Vector3, to: Vector3) -> bool:
-	if _blocked_by_smoke(from, to):
+func _line_clear(from: Vector3, to: Vector3, team := -1) -> bool:
+	if _blocked_by_smoke(from, to, team):
 		return false
 	var query := PhysicsRayQueryParameters3D.create(from, to, Layers.VISION_BLOCKER)
 	return get_world_3d().direct_space_state.intersect_ray(query).is_empty()
@@ -275,7 +277,7 @@ func _line_clear(from: Vector3, to: Vector3) -> bool:
 
 ## Una nube corta la línea si el segmento (en el suelo) pasa por su círculo.
 ## Dentro de una nube solo se ve lo que está a menos de 1 m.
-func _blocked_by_smoke(from: Vector3, to: Vector3) -> bool:
+func _blocked_by_smoke(from: Vector3, to: Vector3, team := -1) -> bool:
 	if _smokes.is_empty():
 		return false
 	var a := Vector2(from.x, from.z)
@@ -283,6 +285,8 @@ func _blocked_by_smoke(from: Vector3, to: Vector3) -> bool:
 	if a.distance_to(b) <= BLIND_RADIUS:
 		return false
 	for s in _smokes:
+		if team >= 0 and s["team"] == team:
+			continue
 		var c3: Vector3 = s["center"]
 		var c := Vector2(c3.x, c3.z)
 		var r: float = s["radius"]

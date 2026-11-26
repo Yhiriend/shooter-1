@@ -82,7 +82,7 @@ func _physics_process(delta: float) -> void:
 		return
 
 	var o := _owner_pawtner
-	if not o.can_act() or not o.wants_shoot or o.frozen or o.is_interacting or _cooldown > 0.0:
+	if not o.can_act() or not o.wants_shoot or o.frozen or o.setup_lock or o.is_interacting or _cooldown > 0.0:
 		return
 	if ammo <= 0:
 		start_reload()

@@ -75,6 +75,9 @@ func _physics_process(delta: float) -> void:
 	_clear_intent()
 	if not _pawtner.is_alive or _map == null or _pawtner.frozen:
 		return
+	if _pawtner.setup_lock:
+		_setup_phase(delta)
+		return
 
 	var enemy := _closest_visible_enemy()
 	if enemy:
@@ -105,6 +108,19 @@ func _physics_process(delta: float) -> void:
 		State.OBJECTIVE:
 			_pursue_objective(delta)
 	# Las habilidades se deciden al final: pueden ajustar el movimiento (impulsos).
+	_abilities.think(self, _pawtner, delta)
+
+
+## Fase de compra: solo va a su puesto si está dentro de su zona (los defensores, a su maceta)
+## y prepara trampas o vigías. No combate ni investiga ruidos.
+func _setup_phase(delta: float) -> void:
+	var m := MatchManager.current
+	if m and m.in_setup_zone(_pawtner, _goal):
+		match state:
+			State.ADVANCE:
+				_follow_path(delta)
+			State.HOLD:
+				_hold_left = maxf(_hold_left, 1.0)  # quedarse en el puesto hasta que empiece la acción
 	_abilities.think(self, _pawtner, delta)
 
 
@@ -328,7 +344,7 @@ func _set_path_to(pos: Vector3) -> void:
 
 
 func _on_noise_heard(team: int, pos: Vector3, _source: Pawtner) -> void:
-	if team != _pawtner.team or not _pawtner.is_alive:
+	if team != _pawtner.team or not _pawtner.is_alive or _pawtner.setup_lock:
 		return
 	# Combate y objetivo urgente (sembrar, arrancar, rescatar) van antes que un ruido.
 	if state in [State.COMBAT, State.OBJECTIVE]:
