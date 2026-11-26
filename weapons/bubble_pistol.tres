@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="WeaponData" format=3]
+
+[ext_resource type="Script" path="res://weapons/weapon_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+display_name = "Pistola de burbujas"
+price = 0
+damage = 22.0
+fire_interval = 0.3
+magazine = 12
+reload_time = 1.5
+projectile_speed = 35.0
+max_range = 7.5
+projectile_color = Color(0.6, 0.85, 1, 1)
+projectile_radius = 0.1
+noise_radius = 25.0
+base_spread_deg = 0.8
+bloom_per_shot_deg = 2.0
+max_bloom_deg = 5.5
+bloom_recovery_deg_per_s = 10.0

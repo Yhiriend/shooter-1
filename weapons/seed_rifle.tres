@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="WeaponData" format=3]
+
+[ext_resource type="Script" path="res://weapons/weapon_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+display_name = "Rifle de semillas"
+price = 1700
+damage = 30.0
+fire_interval = 0.11
+magazine = 25
+reload_time = 2.2
+projectile_speed = 45.0
+max_range = 9.75
+projectile_color = Color(0.55, 0.85, 0.35, 1)
+base_spread_deg = 0.9
+bloom_per_shot_deg = 1.1
+max_bloom_deg = 7.0
+bloom_recovery_deg_per_s = 14.0

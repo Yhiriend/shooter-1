@@ -1,0 +1,40 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://maps/huerto_lunar.gd" id="1_map"]
+[ext_resource type="Script" path="res://core/top_down_camera.gd" id="3_camera"]
+[ext_resource type="PackedScene" path="res://ui/touch_controls.tscn" id="5_touch"]
+[ext_resource type="Script" path="res://core/perception.gd" id="6_perception"]
+[ext_resource type="Script" path="res://core/match_manager.gd" id="7_match"]
+
+[sub_resource type="Environment" id="Environment_main"]
+background_mode = 1
+background_color = Color(0.62, 0.82, 0.92, 1)
+ambient_light_source = 2
+ambient_light_color = Color(1, 0.95, 0.9, 1)
+ambient_light_energy = 0.6
+
+[node name="HuertoLunar" type="Node3D"]
+script = ExtResource("1_map")
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("Environment_main")
+
+[node name="Sun" type="DirectionalLight3D" parent="."]
+transform = Transform3D(0.866025, -0.404508, 0.293893, 0, 0.587785, 0.809017, -0.5, -0.700629, 0.509037, 0, 10, 0)
+light_energy = 1.1
+shadow_enabled = true
+
+[node name="Perception" type="Node3D" parent="."]
+script = ExtResource("6_perception")
+
+[node name="Camera" type="Camera3D" parent="."]
+script = ExtResource("3_camera")
+
+[node name="TouchControls" parent="." instance=ExtResource("5_touch")]
+
+[node name="MatchManager" type="Node" parent="."]
+script = ExtResource("7_match")
+map_path = NodePath("..")
+perception_path = NodePath("../Perception")
+camera_path = NodePath("../Camera")
+touch_controls_path = NodePath("../TouchControls")
