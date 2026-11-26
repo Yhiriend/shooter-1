@@ -15,6 +15,9 @@ extends Resource
 @export var first_shot_recovery_time := 0.5
 
 @export_group("Cadencia y cargador")
+## Disparo al soltar: mantener y arrastrar solo apunta; el tiro sale al soltar (rifle).
+@export var fire_on_release := false
+## Segundos entre disparos (cadencia).
 @export var fire_interval := 0.12
 @export var magazine := 25
 @export var reload_time := 2.0

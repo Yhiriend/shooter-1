@@ -11,7 +11,7 @@ const COLOR_SHIELD := Color(0.85, 0.95, 1.0)
 const COLOR_BACK := Color(0.12, 0.09, 0.18, 0.75)
 const COLOR_TEXT := Color(1, 1, 1)
 const COLOR_OUTLINE := Color(0.12, 0.09, 0.18)
-## Escudo máximo de referencia (caparazón pesado) para el ancho de su barra.
+## Escudo máximo de referencia (escudo pesado) para el ancho de su barra.
 const SHIELD_REFERENCE := 50.0
 
 var _font: Font

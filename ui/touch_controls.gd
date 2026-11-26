@@ -15,5 +15,11 @@ func _ready() -> void:
 	interact_button.visible = false
 
 
+## Oculta los joysticks (por ejemplo, con la tienda abierta) para que no roben toques.
+func set_sticks_enabled(enabled: bool) -> void:
+	move_stick.visible = enabled
+	aim_stick.visible = enabled
+
+
 func is_touch_mode() -> bool:
 	return visible

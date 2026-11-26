@@ -15,6 +15,8 @@ extends Node
 
 var _pawtner: Pawtner
 var _touch: TouchControls
+## Armas de disparo al soltar: true mientras se arrastra el joystick de disparo.
+var _release_armed := false
 
 
 func _ready() -> void:
@@ -54,8 +56,17 @@ func _read_touch() -> void:
 	_pawtner.wants_interact = _touch.interact_button.pressed
 
 	var aim: Vector2 = _touch.aim_stick.value
-	_pawtner.wants_shoot = aim.length() >= fire_stick_threshold
-	if aim.length() >= aim_stick_threshold:
+	var aiming := aim.length() >= aim_stick_threshold
+	if _fires_on_release():
+		# Rifle: arrastrar solo apunta; al soltar sale el tiro hacia donde se apuntaba.
+		_pawtner.wants_shoot = _release_armed and not aiming
+		_release_armed = aiming
+		if _pawtner.wants_shoot:
+			return
+	else:
+		_release_armed = false
+		_pawtner.wants_shoot = aim.length() >= fire_stick_threshold
+	if aiming:
 		_pawtner.aim_point = _point_toward(aim)
 	elif move != Vector2.ZERO:
 		# Sin apuntar, el animal mira hacia donde camina.
@@ -66,7 +77,10 @@ func _read_keyboard_mouse() -> void:
 	_pawtner.move_input = Input.get_vector("move_left", "move_right", "move_up", "move_down")
 	_pawtner.wants_walk = Input.is_action_pressed("walk")
 	_pawtner.wants_aim_fine = Input.is_action_pressed("aim_fine")
-	_pawtner.wants_shoot = Input.is_action_pressed("shoot")
+	if _fires_on_release():
+		_pawtner.wants_shoot = Input.is_action_just_released("shoot")
+	else:
+		_pawtner.wants_shoot = Input.is_action_pressed("shoot")
 	_pawtner.wants_interact = Input.is_action_pressed("interact")
 
 	var cam := get_viewport().get_camera_3d()
@@ -77,6 +91,10 @@ func _read_keyboard_mouse() -> void:
 	var hit: Variant = plane.intersects_ray(cam.project_ray_origin(mouse), cam.project_ray_normal(mouse))
 	if hit != null:
 		_pawtner.aim_point = hit
+
+
+func _fires_on_release() -> bool:
+	return _pawtner.weapon != null and _pawtner.weapon.data.fire_on_release
 
 
 func _point_toward(screen_dir: Vector2) -> Vector3:

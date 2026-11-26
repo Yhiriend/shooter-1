@@ -73,6 +73,7 @@ func _draw() -> void:
 	var ammo := "Recargando..." if weapon.is_reloading else "%d / %d   ∞" % [weapon.ammo, weapon.data.magazine]
 	_text_right(weapon.data.display_name, Vector2(w - 24, 44), 24)
 	_text_right(ammo, Vector2(w - 24, 76), 28)
+	_text_right("%d croquetas" % m.economy.credits(m.player), Vector2(w - 24, 108), 24, COLOR_SEED)
 
 	# Barra de la interacción en curso.
 	if m.player.is_interacting:

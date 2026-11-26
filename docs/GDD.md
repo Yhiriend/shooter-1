@@ -139,25 +139,36 @@ Cada animal tiene 100 de vida, sin regeneración, y un rifle mata en unos 4 impa
 
 Las armas sobreviven entre rondas si el animal sobrevive, igual que en VALORANT. Se puede comprar para el compañero.
 
-La munición es infinita: no hay balas de reserva que comprar ni que se agoten. Solo existe el cargador, y recargar siempre lo llena; el tiempo de recarga es el costo.
-
 **Armas del MVP**
 
-| Arma | Tipo | Precio | Daño por impacto | Uso |
-| --- | --- | --- | --- | --- |
-| Pistola de burbujas | Pistola | Gratis | 22 | Inicial; precisa quieto |
-| Tirachinas | Pistola pesada | 400 | 45 | Eco: dos impactos con tiro certero |
-| Escopeta de confeti | Escopeta | 900 | 8 perdigones de 12 | Esquinas y macetas |
-| Lanzaguisantes | Subfusil | 1.000 | 18 | Cadencia alta; castiga poco el movimiento |
-| Rifle de semillas | Rifle | 1.700 | 30 | El arma de referencia |
-| Ballesta de zanahoria | Francotirador | 2.400 | 110 | Un impacto mata sin escudo; recarga lenta |
+El MVP tiene 3 armas con identidades claras. Cada arma tiene su cadencia; la del rifle es la más baja. Todas usan la vida base de 100.
 
-| Protección | Precio | Escudo |
-| --- | --- | --- |
-| Caparazón ligero | 300 | +25 |
-| Caparazón pesado | 800 | +50 |
+| Arma | Precio | Cargador | Daño | Cadencia (s entre disparos) | Recarga | Alcance | Cómo se usa |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| Pistola de burbujas | Gratis | 15 | 10 por bala (1/10 de la vida) | 0,2 (moderada) | 1,5 s | 7,5 m | Arma inicial; dispara mientras se mantiene |
+| Escopeta de confeti | 900 | 2 | 6 perdigones de 17 (si impactan todos, mata) | 0,6 | 2,0 s | 4,5 m | Cono amplio; para esquinas y macetas |
+| Rifle de semillas | 1.700 | 1 | 50 (2 impactos matan) | 1,4 (la más baja) | 1,4 s tras cada tiro | 9 m | Se apunta arrastrando y **dispara al soltar** |
 
-**Precisión:** cada arma tiene un cono de dispersión. Quieto es el mínimo; caminando, ×1,5; corriendo, ×3; cada disparo seguido lo abre más. El primer disparo estando quieto es un tiro certero: +50 % de daño.
+Notas de diseño de las armas:
+
+- **Rifle:** al pulsar y arrastrar el joystick de disparo solo se apunta; el disparo sale al soltar. Cada tiro vacía el cargador y obliga a recargar: ese es el costo de matar en 2 impactos. No tiene bonus de tiro certero, para que siempre sean 2 tiros.
+- **Escopeta:** cono más amplio que el resto; cada disparo suelta 6 perdigones y cada uno hace su parte del daño. Solo mata de un disparo si impactan todos (de cerca). 2 disparos por cargador.
+- **Pistola:** cargador de 15 y cadencia moderada; cada bala quita 1/10 de la vida, así que pide constancia y buena puntería.
+- La munición es infinita; solo cuenta el cargador.
+- Las armas del diseño original que no entran al MVP (tirachinas, lanzaguisantes, ballesta de zanahoria) quedan para después.
+
+**Escudos.** Dan vida extra y reducen el daño recibido mientras les queden puntos; al romperse dejan de reducir.
+
+| Escudo | Precio | Vida extra | Reducción de daño |
+| --- | --- | --- | --- |
+| Escudo ligero | 300 | +25 | -15 % |
+| Escudo pesado | 800 | +50 | -30 % |
+
+Con escudo pesado, el rifle necesita 4 impactos en vez de 2 (35 + 35 rompen el escudo y quitan 20 de vida; luego 50 + 50).
+
+**Tienda.** Dos secciones: Armas y Escudo. Se porta un arma y un escudo (o ninguno). Lo comprado en la ronda queda marcado como «Comprado»; tocarlo lo devuelve, y elegir otra cosa de la misma sección devuelve la compra anterior. La tienda muestra lo gastado en la ronda y el tiempo de compra restante. Lo que se trae de la ronda anterior (por sobrevivir) no se devuelve.
+
+**Precisión:** cada arma tiene un cono de dispersión. Quieto es el mínimo; caminando, ×1,5; corriendo, ×3; cada disparo seguido lo abre más. El primer disparo estando quieto es un tiro certero: +50 % de daño. En las 3 armas del MVP el tiro certero está desactivado, para que los daños sean exactos (2 tiros de rifle, 6 perdigones, 10 balas de pistola).
 
 ## Roles y roster MVP
 
@@ -448,7 +459,15 @@ Hecho de la fase de semanas 4–5, parte 1 (rondas, Semilla Lunar y rescate):
 - [x] Botón táctil contextual (Sembrar / Arrancar / Rescatar) y tecla F en PC
 - [x] Bots que llevan y siembran la semilla, recogen la caída, arrancan, rescatan y protegen la planta
 - [x] HUD: marcador, ronda, rol, reloj, avisos de fase, estado de la planta y barra de interacción
-- [ ] Parte 2: economía en croquetas, tienda táctil y bots que compran
+
+Hecho de la fase de semanas 4–5, parte 2 (economía y tienda):
+
+- [x] Croquetas: 800 al empezar y al cambiar de lado; ganar 1.500; perder 900/1.100/1.300 por racha; 100 por eliminación; 150 al equipo por sembrar o arrancar; tope 5.000
+- [x] Quien sobrevive conserva arma y escudo; quien muere vuelve a la pistola
+- [x] Tienda táctil: se abre sola en la fase de compra, botón «Tienda» o tecla B para reabrirla
+- [x] Armas rediseñadas (ver «Armas del MVP»): rifle de 2 tiros con disparo al soltar, escopeta de 6 perdigones y 2 disparos, pistola de 15 balas
+- [x] Bots que compran: arma + escudo ligero si les alcanza; si no, ahorran (eco)
+- [ ] Comprar para el compañero (queda para después)
 
 ## Riesgos y preguntas abiertas
 

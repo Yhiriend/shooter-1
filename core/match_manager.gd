@@ -4,6 +4,7 @@ extends Node
 ## Ver docs/GDD.md, «Modo de juego: Semilla Lunar» y «Reglas de partida 2v2».
 
 signal round_started(round_number: int)
+signal buy_phase_started
 signal round_ended(winner: int, reason: String)
 
 enum Phase { BUY, ACTION, PLANTED, ROUND_END, MATCH_END }
@@ -34,8 +35,8 @@ static var current: MatchManager
 @export var perception_path: NodePath
 @export var camera_path: NodePath
 @export var touch_controls_path: NodePath
-@export var player_weapon: WeaponData = preload("res://weapons/seed_rifle.tres")
-@export var bot_weapon: WeaponData = preload("res://weapons/seed_rifle.tres")
+## Probabilidad de que un bot prefiera la escopeta al rifle cuando le alcanza.
+@export_range(0.0, 1.0) var bot_shotgun_preference := 0.35
 
 var phase := Phase.BUY
 var time_left := 0.0
@@ -55,6 +56,10 @@ var seed: MoonSeed
 var plant: MoonPlant
 var plushes: Array[Plush] = []
 var rescue_used: Array[bool] = [false, false]
+var economy := Economy.new()
+
+## Bots que prefieren la escopeta en esta partida.
+var _prefers_shotgun := {}
 
 var _map: HuertoLunar
 var _camera: TopDownCamera
@@ -96,6 +101,10 @@ func _ready() -> void:
 	var match_hud := MatchHud.new()
 	match_hud.name = "MatchHud"
 	hud.add_child(match_hud)
+	var shop := Shop.new()
+	shop.name = "Shop"
+	shop.touch_controls = get_node(touch_controls_path) as TouchControls
+	hud.add_child(shop)
 
 	_start_match()
 
@@ -136,13 +145,26 @@ func _start_match() -> void:
 	score = [0, 0]
 	round_number = 0
 	attacker_team = 0
+	_prefers_shotgun.clear()
+	for p in pawtners:
+		_prefers_shotgun[p] = randf() < bot_shotgun_preference
 	_start_round()
+
+
+## Inicio de partida y cambio de lado: 800 croquetas, pistola y sin escudo para todos.
+func _reset_loadouts() -> void:
+	economy.reset(pawtners)
+	for p in pawtners:
+		p.is_alive = false  # para que _start_round no conserve armas ni escudo
 
 
 func _start_round() -> void:
 	round_number += 1
+	if round_number == 1:
+		_reset_loadouts()
 	if round_number == SWAP_AFTER_ROUND + 1:
 		attacker_team = 1 - attacker_team
+		_reset_loadouts()
 	if round_number == ROUNDS_TO_WIN * 2 - 1:
 		# Ronda decisiva con 4–4: el lado se sortea.
 		attacker_team = randi() % 2
@@ -165,7 +187,15 @@ func _start_round() -> void:
 		for i in members.size():
 			var p := members[i]
 			var role := 0 if team == attacker_team else 1
+			# Quien sobrevivió conserva arma y escudo; quien murió vuelve a la pistola.
+			var survived := p.is_alive
+			var kept_shield := p.shield
 			p.respawn_at(_map.spawn_point(role, i), false)
+			if survived:
+				p.shield = kept_shield
+			else:
+				p.clear_armor()
+				p.equip(Economy.PISTOL)
 			p.aim_point = p.global_position + Vector3(0.0, 0.0, -3.0 if role == 0 else 3.0)
 			p.frozen = true
 			var bot := p.get_node_or_null("BotController") as BotController
@@ -176,9 +206,15 @@ func _start_round() -> void:
 	var attackers := team_members(attacker_team)
 	seed.give_to(attackers[round_number % attackers.size()])
 
+	economy.begin_round()
+	for p in pawtners:
+		if p != player:
+			_bot_buy(p)
+
 	_camera.set_target(player)
 	_set_phase(Phase.BUY, BUY_TIME)
 	round_started.emit(round_number)
+	buy_phase_started.emit()
 
 
 func _bot_zones(p: Pawtner, index: int) -> PackedStringArray:
@@ -230,6 +266,7 @@ func _end_round(winner: int, reason: String) -> void:
 	if phase in [Phase.ROUND_END, Phase.MATCH_END]:
 		return
 	score[winner] += 1
+	economy.award_round(pawtners, winner)
 	last_winner = winner
 	last_reason = reason
 	for p in pawtners:
@@ -272,6 +309,7 @@ func _plant_seed(p: Pawtner) -> void:
 	_map.add_child(plant)
 	plant.global_position = Vector3(p.global_position.x, 0.0, p.global_position.z)
 	plant.bloomed.connect(func() -> void: _end_round(attacker_team, "¡La Semilla Lunar floreció!"))
+	economy.add_team(pawtners, attacker_team, Economy.OBJECTIVE_REWARD)
 	_plant_progress = 0.0
 	_set_phase(Phase.PLANTED, MoonPlant.GROW_TIME)
 
@@ -335,6 +373,7 @@ func _update_interactions(delta: float) -> void:
 			if p.is_interacting and p.available_interaction == ACTION_UPROOT:
 				p.interaction_progress = plant.uproot_progress
 		if plant.uproot_progress >= 1.0:
+			economy.add_team(pawtners, defender_team(), Economy.OBJECTIVE_REWARD)
 			_end_round(defender_team(), "¡Planta arrancada!")
 
 
@@ -377,7 +416,9 @@ func _remove_plush(plush: Plush) -> void:
 
 # --- Muertes ---
 
-func _on_pawtner_died(victim: Pawtner, _killer: Pawtner) -> void:
+func _on_pawtner_died(victim: Pawtner, killer: Pawtner) -> void:
+	if killer and killer.team != victim.team:
+		economy.add(killer, Economy.KILL_REWARD)
 	if victim.carrying_seed:
 		seed.drop(victim.global_position)
 	if phase in [Phase.ACTION, Phase.PLANTED]:
@@ -401,7 +442,7 @@ func _spawn(display_name: String, team: int, is_player: bool) -> Pawtner:
 	p.name = display_name
 	p.display_name = display_name
 	p.team = team
-	p.weapon_data = player_weapon if is_player else bot_weapon
+	p.weapon_data = Economy.PISTOL
 	if is_player:
 		var pc := PlayerController.new()
 		pc.name = "PlayerController"
@@ -421,6 +462,27 @@ func _spawn(display_name: String, team: int, is_player: bool) -> Pawtner:
 	p.died.connect(_on_pawtner_died)
 	pawtners.append(p)
 	return p
+
+
+# --- Compras ---
+
+func is_buy_phase() -> bool:
+	return phase == Phase.BUY
+
+
+## Regla simple de compra para bots: arma + escudo ligero si alcanza; si no, ahorra (eco).
+func _bot_buy(p: Pawtner) -> void:
+	if p.weapon.data == Economy.PISTOL:
+		var prefer: WeaponData = Economy.SHOTGUN if _prefers_shotgun.get(p, false) else Economy.RIFLE
+		var light_price: int = Economy.SHIELDS[0]["price"]
+		if economy.can_afford(p, prefer.price + light_price):
+			economy.buy_weapon(p, prefer)
+		elif economy.can_afford(p, Economy.SHOTGUN.price + light_price):
+			economy.buy_weapon(p, Economy.SHOTGUN)
+		else:
+			return  # eco: ahorra para la siguiente ronda
+	if not economy.buy_shield(p, 1):
+		economy.buy_shield(p, 0)
 
 
 func _flat_distance(a: Vector3, b: Vector3) -> float:

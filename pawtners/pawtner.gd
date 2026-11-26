@@ -51,6 +51,10 @@ var aim_point := Vector3.ZERO
 # --- Estado ---
 var health := 100.0
 var shield := 0.0
+## Escudo equipado: índice en Economy.SHIELDS, o -1 sin escudo.
+var armor_index := -1
+## Fracción del daño que se resta mientras al escudo le queden puntos.
+var shield_reduction := 0.0
 var is_alive := true
 var is_aiming_fine := false
 var move_state := MoveState.STILL
@@ -87,6 +91,26 @@ func _ready() -> void:
 	_apply_team_color()
 	if Perception.current:
 		Perception.current.register(self)
+
+
+## Equipa un escudo: `points` de vida extra y `reduction` (0..1) de daño mientras dure.
+func set_armor(index: int, points: float, reduction: float) -> void:
+	armor_index = index
+	shield = points
+	shield_reduction = reduction
+	health_changed.emit(health, shield)
+
+
+func clear_armor() -> void:
+	armor_index = -1
+	shield = 0.0
+	shield_reduction = 0.0
+
+
+## Cambia el arma (tienda o pérdida del arma al morir). El cargador empieza lleno.
+func equip(data: WeaponData) -> void:
+	weapon_data = data
+	weapon.setup(self, data)
 
 
 func eye_position() -> Vector3:
@@ -132,9 +156,15 @@ func _physics_process(delta: float) -> void:
 func take_damage(amount: float, source: Pawtner) -> void:
 	if not is_alive or _protection_left > 0.0:
 		return
-	var absorbed := minf(shield, amount)
+	var damage := amount
+	if shield > 0.0:
+		damage *= 1.0 - shield_reduction
+	var absorbed := minf(shield, damage)
 	shield -= absorbed
-	health -= amount - absorbed
+	health -= damage - absorbed
+	if shield <= 0.0:
+		# El escudo se rompió: deja de reducir daño.
+		clear_armor()
 	health_changed.emit(health, shield)
 	if health <= 0.0:
 		_die(source)
