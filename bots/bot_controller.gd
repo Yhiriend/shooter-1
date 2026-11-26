@@ -45,6 +45,7 @@ var _stuck_time := 0.0
 var _objective_timer := 0.0
 ## Interacción a mantener al llegar al objetivo ("" = solo ir).
 var _objective_action := ""
+var _abilities := BotAbilities.new()
 
 
 func setup(map: HuertoLunar) -> void:
@@ -63,6 +64,7 @@ func _ready() -> void:
 ## Lo llama MatchManager al empezar cada ronda.
 func reset_for_round(zones: PackedStringArray) -> void:
 	goal_zones = zones
+	_abilities.reset_round()
 	_target = null
 	_objective_action = ""
 	_burst_clock = 0.0
@@ -102,6 +104,25 @@ func _physics_process(delta: float) -> void:
 			_combat(delta)
 		State.OBJECTIVE:
 			_pursue_objective(delta)
+	# Las habilidades se deciden al final: pueden ajustar el movimiento (impulsos).
+	_abilities.think(self, _pawtner, delta)
+
+
+# --- Consultas para BotAbilities ---
+
+## Enemigo con el que está combatiendo (o null).
+func current_target() -> Pawtner:
+	return _target if state == State.COMBAT else null
+
+
+## Interacción del objetivo actual ("Sembrar", "Arrancar", "Rescatar" o "").
+func objective_action() -> String:
+	return _objective_action if state == State.OBJECTIVE else ""
+
+
+## Punto al que se dirige.
+func goal() -> Vector3:
+	return _goal
 
 
 func _clear_intent() -> void:

@@ -47,7 +47,7 @@ func current_half_spread_deg() -> float:
 			mult = data.run_spread_mult
 	if _owner_pawtner.is_aiming_fine:
 		mult *= data.aim_fine_spread_mult
-	return data.base_spread_deg * mult + bloom_deg
+	return (data.base_spread_deg * mult + bloom_deg) * _owner_pawtner.spread_multiplier()
 
 
 ## El próximo disparo será un tiro certero (+daño).
@@ -82,7 +82,7 @@ func _physics_process(delta: float) -> void:
 		return
 
 	var o := _owner_pawtner
-	if not o.is_alive or not o.wants_shoot or o.frozen or o.is_interacting or _cooldown > 0.0:
+	if not o.can_act() or not o.wants_shoot or o.frozen or o.is_interacting or _cooldown > 0.0:
 		return
 	if ammo <= 0:
 		start_reload()

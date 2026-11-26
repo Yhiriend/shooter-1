@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="AbilityData" format=3]
+
+[ext_resource type="Script" path="res://abilities/ability_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+display_name = "Cascabel"
+aim_mode = 2
+slot = "Q"
+description = "Estalla y deja con 1 m de visión durante 1,5 s a los enemigos que lo estén mirando."
+effect = 1
+price = 150
+max_charges = 2
+cast_range = 8.0
+radius = 8.0
+duration = 1.5

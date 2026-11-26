@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="AbilityData" format=3]
+
+[ext_resource type="Script" path="res://abilities/ability_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+display_name = "Madriguera rápida"
+slot = "E"
+description = "Viaja bajo tierra hasta 6 m, pasando bajo coberturas; deja un montículo visible."
+effect = 6
+free_charges = 1
+max_charges = 1
+amount = 6.0
+duration = 0.4

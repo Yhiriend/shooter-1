@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="AbilityData" format=3]
+
+[ext_resource type="Script" path="res://abilities/ability_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+display_name = "Charco de miel"
+aim_mode = 2
+slot = "Q"
+description = "Zona de 3 m durante 6 s: frena un 40 % y hace visibles los pasos."
+effect = 9
+price = 150
+max_charges = 1
+cast_range = 8.0
+radius = 3.0
+duration = 6.0
+amount = 0.6

@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="AbilityData" format=3]
+
+[ext_resource type="Script" path="res://abilities/ability_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+display_name = "Salto felino"
+slot = "E"
+description = "Impulso de 4 m; se recupera al conseguir 2 eliminaciones."
+effect = 2
+free_charges = 1
+max_charges = 1
+amount = 4.0
+duration = 0.15

@@ -75,6 +75,23 @@ func _draw() -> void:
 	_text_right(ammo, Vector2(w - 24, 76), 28)
 	_text_right("%d croquetas" % m.economy.credits(m.player), Vector2(w - 24, 108), 24, COLOR_SEED)
 
+	# Habilidades (en móvil ya las muestran los botones).
+	if not DisplayServer.is_touchscreen_available() and m.player.kit.character:
+		var kit := m.player.kit
+		var parts := PackedStringArray()
+		for slot in AbilityKit.SLOTS:
+			var ab := kit.ability(slot)
+			if slot == "X":
+				parts.append("X %s %d/%d" % [ab.display_name, kit.ult_points, kit.ult_cost()])
+			else:
+				parts.append("%s %s x%d" % [slot, ab.display_name, kit.charges.get(slot, 0)])
+		_text_centered("   ".join(parts), Vector2(w * 0.5, screen.y - 24), 20)
+
+	# Cegado (cascabel o siesta del bosque): la pantalla se vuelve blanca.
+	if m.player.is_blinded():
+		var alpha := clampf(m.player.blind_time_left() / 1.5, 0.0, 1.0) * 0.85
+		draw_rect(Rect2(Vector2.ZERO, screen), Color(1, 1, 1, alpha))
+
 	# Barra de la interacción en curso.
 	if m.player.is_interacting:
 		var label: String = INTERACT_LABELS.get(m.player.available_interaction, "")

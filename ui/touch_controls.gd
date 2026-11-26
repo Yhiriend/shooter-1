@@ -8,11 +8,21 @@ extends CanvasLayer
 @onready var move_stick: TouchStick = $MoveStick
 @onready var aim_stick: TouchStick = $AimStick
 @onready var interact_button: TouchButton = $InteractButton
+## Botones de habilidad por ranura: "C", "Q", "E", "X".
+@onready var ability_buttons := {
+	"C": $AbilityC as TouchButton,
+	"Q": $AbilityQ as TouchButton,
+	"E": $AbilityE as TouchButton,
+	"X": $AbilityX as TouchButton,
+}
 
 
 func _ready() -> void:
 	visible = force_visible or DisplayServer.is_touchscreen_available()
 	interact_button.visible = false
+	# Los muestra el PlayerController cuando ya existe tu Pawtner.
+	for button: TouchButton in ability_buttons.values():
+		button.visible = false
 
 
 ## Oculta los joysticks (por ejemplo, con la tienda abierta) para que no roben toques.

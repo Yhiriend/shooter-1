@@ -2,6 +2,8 @@
 
 Versión del 26 de noviembre de 2026.
 
+Documentos de referencia: [Pawtners y habilidades](pawtners.md) · [Armas, escudos y precisión](armas.md).
+
 ## Índice
 
 1. [Concepto](#concepto)
@@ -190,24 +192,36 @@ Se recomienda un dúo de un Zarpa y un Madriguera, pero no es obligatorio.
 
 **Habilidades.** Cada Pawtner tiene 4 ranuras: C y Q se compran (máximo 1–2 cargas), E es gratis una vez por ronda y X es la definitiva, que se carga por puntos.
 
+**Cómo se lanzan.** Cada habilidad tiene uno de tres modos:
+
+| Modo | Cómo se lanza | Habilidades |
+| --- | --- | --- |
+| Instantánea | Un toque: sale hacia donde te mueves, a tus pies o alrededor tuyo | Mochi E y X; Pip Q y E; Capi C y X |
+| Dirección | Mantener y arrastrar el botón: una flecha muestra la dirección; sale al soltar | Mochi C (ovillo); Tofu C (muro, perpendicular a la flecha) |
+| Área | Mantener y arrastrar: se ve el círculo de alcance alrededor del Pawtner y la zona de caída con su radio; cae al soltar | Mochi Q; Pip C y X; Tofu Q, E y X; Capi Q y E (el vigía mira en la dirección del lanzamiento) |
+
+Un toque corto sin arrastrar lanza las de dirección y área hacia donde mira el Pawtner (las de área, al 60 % del alcance).
+
+**Definitiva.** Se carga con eliminaciones, sembrar, arrancar y tréboles. Cuesta 5 puntos (Capi, 4) porque la partida dura como mucho 9 rondas. Los puntos se conservan al cambiar de lado; las cargas compradas de C y Q se reinician con la economía.
+
 | Pawtner | Tecla | Habilidad | Coste | Efecto |
 | --- | --- | --- | --- | --- |
 | Mochi | C | Ovillo rebotón | 200 | Ovillo que rebota en coberturas; al detenerse revela enemigos a 5 m durante 2 s |
-| Mochi | Q | Cascabel | 150 | Estalla y deja con 1 m de visión durante 1,5 s a quien apunte hacia él |
+| Mochi | Q | Cascabel | 150 | Estalla y deja con 1 m de visión durante 1,5 s a los enemigos que lo estén mirando (no afecta a tu equipo) |
 | Mochi | E | Salto felino | Gratis | Impulso de 4 m; se recupera al conseguir 2 eliminaciones |
-| Mochi | X | Ojos nocturnos | 7 pts | 8 s viendo las huellas de todo enemigo que corra, en todo el mapa |
+| Mochi | X | Ojos nocturnos | 5 pts | 8 s viendo las huellas de todo enemigo que corra, en todo el mapa |
 | Pip | C | Zanahoria señuelo | 100 | Genera ondas de pasos falsos durante 4 s |
 | Pip | Q | Tierra al aire | 200 | Golpe al suelo: enemigos a 3 m quedan lentos y con dispersión ×3 durante 1,5 s |
 | Pip | E | Madriguera rápida | Gratis | Viaja bajo tierra hasta 6 m, pasando bajo coberturas; deja un montículo visible |
-| Pip | X | Gran salto | 7 pts | Salta a un punto visible a 15 m y aturde al caer en 4 m |
+| Pip | X | Gran salto | 5 pts | Salta a un punto visible a 15 m y aturde al caer en 4 m |
 | Tofu | C | Muro de bambú | 200 | Muro de 6 m que dura 10 s; bloquea balas y visión; 300 de vida |
 | Tofu | Q | Charco de miel | 150 | Zona de 3 m durante 6 s: frena un 40 % y hace visibles los pasos |
 | Tofu | E | Nube de bambú | Gratis (2.ª: 100) | Nube de 3 m durante 14 s, colocada desde un mapa táctico; bloquea visión |
-| Tofu | X | Siesta del bosque | 7 pts | Nube de 8 m durante 8 s; los enemigos dentro ven a 1 m |
+| Tofu | X | Siesta del bosque | 5 pts | Nube de 8 m durante 8 s; los enemigos dentro ven a 1 m |
 | Capi | C | Naranja trampa | 150 | Trampa invisible a más de 3 m; al pisarla inmoviliza 1,5 s y revela |
 | Capi | Q | Baño termal | 200 | Charco que cura a aliados 8 de vida por segundo, hasta 40 |
 | Capi | E | Vigía tranquilo | Gratis | Pajarito sobre una cobertura que da visión en cono de 8 m; cae de 1 impacto; se recoge y se vuelve a poner |
-| Capi | X | Calma total | 6 pts | Revive al compañero caído en esta ronda con 100 de vida; si está vivo, da 50 de escudo a ambos |
+| Capi | X | Calma total | 4 pts | Revive al compañero caído en esta ronda con 100 de vida; si está vivo, da 50 de escudo a ambos |
 
 Roster para después del MVP (solo ideas): zorro ilusionista, búho de reconocimiento aéreo, erizo de trampas de púas, nutria con granadas de agua.
 
@@ -241,7 +255,7 @@ El control principal es táctil. Teclado y ratón existen para probar en PC.
 | Apuntar | Joystick derecho flotante; sin tocarlo, el animal mira hacia donde camina | Ratón |
 | Disparar | Llevar el joystick derecho hasta el borde (más del 85 %): primero apuntas, luego empujas para disparar | Clic izquierdo |
 | Apuntado fino | Botón de mira: cierra el cono y alarga la vista un 20 %, pero frena un 30 % | Clic derecho |
-| Habilidades | 3 botones en arco sobre el joystick derecho, más la definitiva | C, Q, E; X |
+| Habilidades | Botones C, Q y E en arco junto al joystick derecho y la X arriba (con anillo de carga). Según el modo: instantánea (toque) o apuntada (mantener, arrastrar y soltar) | C, Q, E, X: mantener, apuntar con el ratón y soltar |
 | Sembrar o arrancar | Botón contextual que aparece en la maceta (mantener) | Mantener F |
 | Recargar | Automática al vaciar el cargador, o botón | R |
 | Comprar | Botón de tienda durante la fase de compra | B |
@@ -468,6 +482,22 @@ Hecho de la fase de semanas 4–5, parte 2 (economía y tienda):
 - [x] Armas rediseñadas (ver «Armas del MVP»): rifle de 2 tiros con disparo al soltar, escopeta de 6 perdigones y 2 disparos, pistola de 15 balas
 - [x] Bots que compran: arma + escudo ligero si les alcanza; si no, ahorran (eco)
 - [ ] Comprar para el compañero (queda para después)
+
+Hecho de la fase de semanas 6–7, parte 1 (los 4 Pawtners):
+
+- [x] Pantalla para elegir Pawtner; tu compañero es del otro rol y los rivales son los dos restantes
+- [x] Datos por personaje (`CharacterData`) y por habilidad (`AbilityData`) en `.tres`, editables desde el inspector
+- [x] `AbilityKit`: cargas de C, Q y E (la E se recarga cada ronda), puntos de definitiva y lanzamiento hacia donde se apunta
+- [x] Las 16 habilidades con objetos comunes: zonas (nube, miel, aguas termales, nube grande), muro, trampa, señuelo, vigía, ovillo y cascabel
+- [x] Estados alterados: lento, cono abierto, cegado, aturdido, inmovilizado y pasos ruidosos
+- [x] Nubes y muros cortan la línea de vista y la niebla; el vigía da visión en cono
+- [x] Puntos de definitiva por eliminación, sembrar, arrancar y tréboles (uno por pasillo, reaparecen cada 2 rondas)
+- [x] Botones táctiles C, Q, E y X (con cargas y anillo de carga de la definitiva) y teclas C, Q, E, X en PC
+- [x] Compra de cargas en la tienda (sección Habilidades), devolvibles en la ronda
+- [x] Modos de lanzamiento: instantánea, dirección (flecha) y área (círculo de alcance + zona de caída), mantener y soltar
+- [x] Parte 2: bots que compran cargas y usan habilidades con reglas por efecto (`BotAbilities`): cascabel y miel en combate, nube o muro al quedar heridos o mientras siembran/arrancan, impulso y madriguera para escapar, trampa y vigía al esperar, baño termal para curar, Calma total para revivir
+- [x] Definitiva más alcanzable: 5 puntos (Capi 4) y se conserva al cambiar de lado
+- [ ] Hito 2: partida 2v2 completa contra bots en el teléfono
 
 ## Riesgos y preguntas abiertas
 

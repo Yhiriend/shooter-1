@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="AbilityData" format=3]
+
+[ext_resource type="Script" path="res://abilities/ability_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+display_name = "Gran salto"
+aim_mode = 2
+slot = "X"
+description = "Salta a un punto a 15 m y aturde al caer a los enemigos a 4 m."
+effect = 7
+ult_cost = 5
+cast_range = 15.0
+radius = 4.0
+duration = 1.2

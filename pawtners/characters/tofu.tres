@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="CharacterData" format=3]
+
+[ext_resource type="Script" path="res://pawtners/character_data.gd" id="1_char"]
+[ext_resource type="Script" path="res://abilities/ability_data.gd" id="1_ability"]
+[ext_resource type="Resource" path="res://abilities/data/tofu_wall.tres" id="2_wall"]
+[ext_resource type="Resource" path="res://abilities/data/tofu_honey.tres" id="3_honey"]
+[ext_resource type="Resource" path="res://abilities/data/tofu_smoke.tres" id="4_smoke"]
+[ext_resource type="Resource" path="res://abilities/data/tofu_big_smoke.tres" id="5_big_smoke"]
+
+[resource]
+script = ExtResource("1_char")
+id = "tofu"
+display_name = "Tofu"
+animal = "Panda"
+role = "Madriguera"
+personality = "Dormilón y tranquilo; abraza su bambú."
+body_color = Color(0.92, 0.92, 0.95, 1)
+abilities = Array[ExtResource("1_ability")]([ExtResource("2_wall"), ExtResource("3_honey"), ExtResource("4_smoke"), ExtResource("5_big_smoke")])

@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="AbilityData" format=3]
+
+[ext_resource type="Script" path="res://abilities/ability_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+display_name = "Muro de bambú"
+aim_mode = 1
+slot = "C"
+cast_range = 4.0
+description = "Muro de 6 m que dura 10 s; bloquea balas y visión; 300 de vida."
+effect = 8
+price = 200
+max_charges = 1
+amount = 6.0
+duration = 10.0
+radius = 300.0

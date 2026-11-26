@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="AbilityData" format=3]
+
+[ext_resource type="Script" path="res://abilities/ability_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+display_name = "Calma total"
+slot = "X"
+description = "Revive al compañero caído en esta ronda con 100 de vida; si está vivo, 50 de escudo a ambos."
+effect = 15
+ult_cost = 4
+amount = 100.0

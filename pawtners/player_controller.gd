@@ -17,6 +17,10 @@ var _pawtner: Pawtner
 var _touch: TouchControls
 ## Armas de disparo al soltar: true mientras se arrastra el joystick de disparo.
 var _release_armed := false
+## Estado anterior de los botones de habilidad, para detectar el toque (flanco).
+var _ability_was_pressed := {}
+
+const ABILITY_ACTIONS := {"C": "ability_c", "Q": "ability_q", "E": "ability_e", "X": "ability_x"}
 
 
 func _ready() -> void:
@@ -37,6 +41,92 @@ func _physics_process(_delta: float) -> void:
 	else:
 		_read_keyboard_mouse()
 	_update_interact_button()
+	_read_abilities()
+
+
+## Habilidad que se está apuntando ("" = ninguna) y su punto objetivo, para el indicador.
+var aiming_slot := ""
+var aiming_target := Vector3.ZERO
+
+## Por debajo de este arrastre se considera un toque corto: lanza hacia donde miras.
+const QUICK_CAST_DRAG := 0.18
+## Toque corto en habilidades de área: cae a esta fracción del alcance.
+const QUICK_CAST_RANGE := 0.6
+
+
+func _read_abilities() -> void:
+	var touch := _touch != null and _touch.is_touch_mode()
+	for slot: String in ABILITY_ACTIONS:
+		var held := false
+		var drag := Vector2.ZERO
+		if touch:
+			var button: TouchButton = _touch.ability_buttons[slot]
+			held = button.pressed
+			drag = button.drag_vector
+			_update_ability_button(button, slot)
+		else:
+			held = Input.is_action_pressed(ABILITY_ACTIONS[slot])
+		var was_held: bool = _ability_was_pressed.get(slot, false)
+		_ability_was_pressed[slot] = held
+		_handle_ability(slot, held, was_held, drag, touch)
+
+
+func _handle_ability(slot: String, held: bool, was_held: bool, drag: Vector2, touch: bool) -> void:
+	var kit := _pawtner.kit
+	var a := kit.ability(slot) if kit else null
+	if a == null:
+		return
+	if a.aim_mode == AbilityData.AimMode.INSTANT:
+		if held and not was_held:
+			_pawtner.wants_ability = slot
+		return
+	# Dirección y área: se apunta mientras se mantiene y se lanza al soltar.
+	if held:
+		if aiming_slot == "" and kit.can_cast(slot):
+			aiming_slot = slot
+		if aiming_slot == slot:
+			aiming_target = _ability_target(a, drag, touch)
+	elif was_held and aiming_slot == slot:
+		_pawtner.ability_target = aiming_target
+		_pawtner.has_ability_target = true
+		_pawtner.wants_ability = slot
+		aiming_slot = ""
+
+
+## Punto objetivo según el modo: en táctil, el arrastre del botón; en PC, el ratón.
+func _ability_target(a: AbilityData, drag: Vector2, touch: bool) -> Vector3:
+	var origin := _pawtner.global_position
+	var reach := maxf(a.cast_range, 3.0)
+	var offset := Vector3.ZERO
+	if touch:
+		if drag.length() < QUICK_CAST_DRAG:
+			var quick := 1.0 if a.aim_mode == AbilityData.AimMode.DIRECTION else QUICK_CAST_RANGE
+			offset = _pawtner.facing() * reach * quick
+		elif a.aim_mode == AbilityData.AimMode.DIRECTION:
+			offset = Vector3(drag.x, 0.0, drag.y).normalized() * reach
+		else:
+			offset = Vector3(drag.x, 0.0, drag.y) * reach
+	else:
+		offset = _pawtner.aim_point - origin
+		offset.y = 0.0
+		if a.aim_mode == AbilityData.AimMode.DIRECTION:
+			offset = offset.normalized() * reach if offset.length_squared() > 0.01 else _pawtner.facing() * reach
+		else:
+			offset = offset.limit_length(reach)
+	return origin + offset
+
+
+func _update_ability_button(button: TouchButton, slot: String) -> void:
+	var kit := _pawtner.kit
+	var a := kit.ability(slot) if kit else null
+	button.visible = a != null and _touch.move_stick.visible
+	if a == null:
+		return
+	if slot == "X":
+		button.set_state("X", "%d/%d" % [kit.ult_points, kit.ult_cost()], not kit.can_cast(slot),
+			float(kit.ult_points) / maxf(kit.ult_cost(), 1))
+	else:
+		button.set_state(slot, "x%d" % kit.charges.get(slot, 0), not kit.can_cast(slot))
 
 
 func _update_interact_button() -> void:

@@ -176,6 +176,42 @@ func sell_shield(p: Pawtner) -> void:
 	purchases_changed.emit(p)
 
 
+# --- Habilidades (cargas de C, Q y la E extra de Tofu) ---
+
+## Cargas de `slot` compradas en esta ronda.
+func bought_ability_count(p: Pawtner, slot: String) -> int:
+	var rec: Dictionary = _record(p).get("ability_" + slot, {})
+	return rec.get("count", 0)
+
+
+## Compra una carga de la habilidad `slot`. true si se pudo.
+func buy_ability(p: Pawtner, slot: String) -> bool:
+	var a := p.kit.ability(slot)
+	if a == null or a.price <= 0 or p.kit.charges.get(slot, 0) >= a.max_charges or not can_afford(p, a.price):
+		return false
+	add(p, -a.price)
+	p.kit.add_charge(slot)
+	var key := "ability_" + slot
+	var rec: Dictionary = _record(p).get(key, {"count": 0, "price": 0})
+	rec["count"] = int(rec["count"]) + 1
+	rec["price"] = int(rec["price"]) + a.price
+	_record(p)[key] = rec
+	purchases_changed.emit(p)
+	return true
+
+
+## Devuelve todas las cargas de `slot` compradas en esta ronda.
+func sell_ability(p: Pawtner, slot: String) -> void:
+	var key := "ability_" + slot
+	var rec: Dictionary = _record(p).get(key, {})
+	if rec.is_empty():
+		return
+	_record(p).erase(key)
+	add(p, int(rec["price"]))
+	p.kit.add_charge(slot, -int(rec["count"]))
+	purchases_changed.emit(p)
+
+
 func _armor_state(p: Pawtner) -> Dictionary:
 	return {"index": p.armor_index, "shield": p.shield, "reduction": p.shield_reduction}
 

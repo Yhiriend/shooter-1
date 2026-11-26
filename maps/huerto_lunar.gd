@@ -61,12 +61,23 @@ const LAYOUT: Array[String] = [
 	"WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW",
 ]
 
+static var current: HuertoLunar
+
 var cols := 0
 var rows := 0
 ## Centro de cada zona, por carácter de la leyenda ("A", "B", "M", "a", "d").
 var zone_centers := {}
 
 var _astar := AStarGrid2D.new()
+
+
+func _enter_tree() -> void:
+	current = self
+
+
+func _exit_tree() -> void:
+	if current == self:
+		current = null
 
 
 func _ready() -> void:
@@ -129,6 +140,26 @@ func find_path(from: Vector3, to: Vector3) -> PackedVector3Array:
 	if not result.is_empty() and b == world_to_cell(to):
 		result[result.size() - 1] = Vector3(to.x, 0.0, to.z)
 	return result
+
+
+## Marca celdas como bloqueadas (o las libera) para los caminos de los bots,
+## por ejemplo mientras existe un muro de bambú. Las celdas sólidas del mapa no cambian.
+func set_cells_blocked(cells: Array[Vector2i], blocked: bool) -> void:
+	for cell in cells:
+		if is_cell_inside(cell) and not is_cell_solid(cell):
+			_astar.set_point_solid(cell, blocked)
+
+
+## Celda libre más cercana a `pos`, como punto del mundo.
+func nearest_free_point(pos: Vector3) -> Vector3:
+	var cell := _nearest_free_cell(world_to_cell(pos))
+	return cell_to_world(cell.x, cell.y)
+
+
+## ¿`pos` cae en una celda transitable?
+func is_point_free(pos: Vector3) -> bool:
+	var cell := world_to_cell(pos)
+	return is_cell_inside(cell) and not is_cell_solid(cell)
 
 
 ## Celda libre al azar a menos de `radius` celdas de `center`.

@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="AbilityData" format=3]
+
+[ext_resource type="Script" path="res://abilities/ability_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+display_name = "Tierra al aire"
+slot = "Q"
+description = "Golpe al suelo: enemigos a 3 m quedan lentos y con el cono ×3 durante 1,5 s."
+effect = 5
+price = 200
+max_charges = 1
+radius = 3.0
+duration = 1.5
+amount = 0.6

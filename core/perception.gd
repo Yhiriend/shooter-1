@@ -22,6 +22,12 @@ var _map: HuertoLunar
 var _visible_by_team: Array[Dictionary] = [{}, {}]  # equipo -> {Pawtner: true}
 ## Revelados a la fuerza (polen, habilidades): equipo -> {Pawtner: segundos restantes}.
 var _forced_reveal: Array[Dictionary] = [{}, {}]
+## Nubes que bloquean la visión: [{"node": Node, "center": Vector3, "radius": float}].
+var _smokes: Array[Dictionary] = []
+## Vigías (pajarito de Capi): [{"node": Node3D, "team": int, "radius": float, "dir": Vector3, "half_angle": float}].
+var _watchers: Array[Dictionary] = []
+## Radio de visión estando cegado.
+const BLIND_RADIUS := 1.0
 var _update_timer := 0.0
 
 # Niebla: un valor por celda del mapa (1 = visible, 0 = en niebla).
@@ -103,6 +109,37 @@ func reveal_to_team(team: int, target: Pawtner, seconds: float) -> void:
 	forced[target] = maxf(forced.get(target, 0.0), seconds)
 
 
+func add_smoke(node: Node, center: Vector3, radius: float) -> void:
+	_smokes.append({"node": node, "center": center, "radius": radius})
+
+
+func remove_smoke(node: Node) -> void:
+	_smokes = _smokes.filter(func(s: Dictionary) -> bool: return s["node"] != node)
+
+
+func add_watcher(node: Node3D, team: int, radius: float, dir: Vector3, half_angle: float) -> void:
+	_watchers.append({"node": node, "team": team, "radius": radius, "dir": dir, "half_angle": half_angle})
+
+
+func remove_watcher(node: Node3D) -> void:
+	_watchers = _watchers.filter(func(w: Dictionary) -> bool: return w["node"] != node)
+
+
+## Ruido sin dueño visible (zanahoria señuelo): lo oyen los enemigos de `owner_team` en radio.
+func emit_fake_noise(owner_team: int, pos: Vector3, radius: float) -> void:
+	for team in 2:
+		if team == owner_team or not _team_has_member_within(team, pos, radius):
+			continue
+		noise_heard.emit(team, pos, null)
+		if team == local_team:
+			_spawn_noise_ring(pos)
+
+
+## ¿Hay línea de vista entre dos puntos? (coberturas altas, muros y nubes la cortan)
+func line_clear(from: Vector3, to: Vector3) -> bool:
+	return _line_clear(from, to)
+
+
 func is_point_visible_to_local(point: Vector3) -> bool:
 	if _map == null:
 		return true
@@ -152,20 +189,26 @@ func _process(delta: float) -> void:
 	_fog_texture.update(_fog_image)
 
 
+func _member_vision_radius(member: Pawtner) -> float:
+	return BLIND_RADIUS if member.is_blinded() else vision_radius
+
+
 func _update_team_vision() -> void:
 	for team in 2:
 		var seen := {}
 		for enemy in pawtners:
-			if enemy.team == team or not enemy.is_alive:
+			if enemy.team == team or not enemy.is_alive or enemy.is_burrowing():
 				continue
 			for member in pawtners:
 				if member.team != team or not member.is_alive:
 					continue
-				if member.global_position.distance_to(enemy.global_position) > vision_radius:
+				if member.global_position.distance_to(enemy.global_position) > _member_vision_radius(member):
 					continue
 				if _line_clear(member.eye_position(), enemy.eye_position()):
 					seen[enemy] = true
 					break
+			if not seen.has(enemy) and _watchers_see(team, enemy.eye_position()):
+				seen[enemy] = true
 		for p: Pawtner in _forced_reveal[team]:
 			if p.is_alive and p.team != team:
 				seen[p] = true
@@ -174,31 +217,79 @@ func _update_team_vision() -> void:
 
 func _update_fog_target() -> void:
 	_fog_target.fill(0.0)
-	var r := int(ceil(vision_radius))
 	for member in pawtners:
-		if member.team != local_team or not member.is_alive:
+		if member.team == local_team and member.is_alive:
+			_reveal_fog_from(member.eye_position(), _member_vision_radius(member), Vector3.ZERO, PI)
+	for w in _watchers:
+		if w["team"] == local_team and is_instance_valid(w["node"]):
+			var node: Node3D = w["node"]
+			_reveal_fog_from(node.global_position, w["radius"], w["dir"], w["half_angle"])
+
+
+## Abre la niebla desde `eye` hasta `radius`, en un cono de medio ángulo `half_angle` hacia `dir`.
+func _reveal_fog_from(eye: Vector3, radius: float, dir: Vector3, half_angle: float) -> void:
+	var r := int(ceil(radius))
+	var center := _map.world_to_cell(eye)
+	for dy in range(-r, r + 1):
+		for dx in range(-r, r + 1):
+			var cell := Vector2i(center.x + dx, center.y + dy)
+			if not _map.is_cell_inside(cell):
+				continue
+			var idx := cell.y * _map.cols + cell.x
+			if _fog_target[idx] > 0.5:
+				continue
+			var point := _map.cell_to_world(cell.x, cell.y) + Vector3.UP * 0.5
+			if eye.distance_to(point) > radius or not _in_cone(eye, point, dir, half_angle):
+				continue
+			# Las celdas de cobertura alta se marcan visibles: el rayo chocaría con ellas mismas.
+			if _map.is_cell_vision_blocker(cell) or _line_clear(eye, point):
+				_fog_target[idx] = 1.0
+
+
+func _in_cone(from: Vector3, to: Vector3, dir: Vector3, half_angle: float) -> bool:
+	if half_angle >= PI or dir == Vector3.ZERO:
+		return true
+	var v := to - from
+	v.y = 0.0
+	return v.length_squared() < 0.01 or v.normalized().angle_to(dir) <= half_angle
+
+
+func _watchers_see(team: int, point: Vector3) -> bool:
+	for w in _watchers:
+		if w["team"] != team or not is_instance_valid(w["node"]):
 			continue
-		var eye := member.eye_position()
-		var center := _map.world_to_cell(member.global_position)
-		for dy in range(-r, r + 1):
-			for dx in range(-r, r + 1):
-				var cell := Vector2i(center.x + dx, center.y + dy)
-				if not _map.is_cell_inside(cell):
-					continue
-				var idx := cell.y * _map.cols + cell.x
-				if _fog_target[idx] > 0.5:
-					continue
-				var point := _map.cell_to_world(cell.x, cell.y) + Vector3.UP * 0.5
-				if eye.distance_to(point) > vision_radius:
-					continue
-				# Las celdas de cobertura alta se marcan visibles: el rayo chocaría con ellas mismas.
-				if _map.is_cell_vision_blocker(cell) or _line_clear(eye, point):
-					_fog_target[idx] = 1.0
+		var node: Node3D = w["node"]
+		var from := node.global_position
+		if from.distance_to(point) <= w["radius"] and _in_cone(from, point, w["dir"], w["half_angle"]) \
+				and _line_clear(from, point):
+			return true
+	return false
 
 
 func _line_clear(from: Vector3, to: Vector3) -> bool:
+	if _blocked_by_smoke(from, to):
+		return false
 	var query := PhysicsRayQueryParameters3D.create(from, to, Layers.VISION_BLOCKER)
 	return get_world_3d().direct_space_state.intersect_ray(query).is_empty()
+
+
+## Una nube corta la línea si el segmento (en el suelo) pasa por su círculo.
+## Dentro de una nube solo se ve lo que está a menos de 1 m.
+func _blocked_by_smoke(from: Vector3, to: Vector3) -> bool:
+	if _smokes.is_empty():
+		return false
+	var a := Vector2(from.x, from.z)
+	var b := Vector2(to.x, to.z)
+	if a.distance_to(b) <= BLIND_RADIUS:
+		return false
+	for s in _smokes:
+		var c3: Vector3 = s["center"]
+		var c := Vector2(c3.x, c3.z)
+		var r: float = s["radius"]
+		var closest := Geometry2D.get_closest_point_to_segment(c, a, b)
+		if closest.distance_to(c) < r:
+			return true
+	return false
 
 
 func _team_has_member_within(team: int, pos: Vector3, radius: float) -> bool:

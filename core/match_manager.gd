@@ -25,6 +25,9 @@ const INTERACT_RANGE := 1.4
 const HUG_NOISE_INTERVAL := 0.5
 const HUG_NOISE_RADIUS := 15.0
 
+## Celdas de los tréboles (mitad de cada pasillo), en la cuadrícula de Huerto Lunar.
+const CLOVER_CELLS: Array[Vector2i] = [Vector2i(6, 17), Vector2i(33, 17)]
+
 const ACTION_PLANT := "Sembrar"
 const ACTION_UPROOT := "Arrancar"
 const ACTION_RESCUE := "Rescatar"
@@ -57,6 +60,8 @@ var plant: MoonPlant
 var plushes: Array[Plush] = []
 var rescue_used: Array[bool] = [false, false]
 var economy := Economy.new()
+## Sin tipo: puede contener tréboles ya recogidos (liberados).
+var _clovers: Array = []
 
 ## Bots que prefieren la escopeta en esta partida.
 var _prefers_shotgun := {}
@@ -87,13 +92,10 @@ func _ready() -> void:
 	seed.name = "MoonSeed"
 	_map.add_child(seed)
 
-	player = _spawn("Tú", 0, true)
-	_spawn("Pip", 0, false)
-	_spawn("Tofu", 1, false)
-	_spawn("Capi", 1, false)
-
 	var hud := CanvasLayer.new()
 	hud.name = "HUD"
+	# Por encima de los controles táctiles: la selección y la tienda deben recibir los toques.
+	hud.layer = 2
 	add_child(hud)
 	var overlay := HealthOverlay.new()
 	overlay.name = "HealthOverlay"
@@ -106,7 +108,37 @@ func _ready() -> void:
 	shop.touch_controls = get_node(touch_controls_path) as TouchControls
 	hud.add_child(shop)
 
+	var picked := await _pick_character(hud)
+	_spawn_teams(picked)
 	_start_match()
+
+
+## Muestra la selección de personaje (o elige al azar sin pantalla, en pruebas).
+func _pick_character(hud: CanvasLayer) -> CharacterData:
+	if DisplayServer.get_name() == "headless":
+		return Roster.CHARACTERS.pick_random()
+	var touch := get_node(touch_controls_path) as TouchControls
+	touch.set_sticks_enabled(false)
+	var select := CharacterSelect.new()
+	select.name = "CharacterSelect"
+	hud.add_child(select)
+	var c: CharacterData = await select.picked
+	touch.set_sticks_enabled(true)
+	return c
+
+
+## Tu compañero es del otro rol; los rivales son los dos personajes restantes.
+func _spawn_teams(mine: CharacterData) -> void:
+	var other_role := "Madriguera" if mine.role == "Zarpa" else "Zarpa"
+	var ally: CharacterData = Roster.by_role(other_role).pick_random()
+	var rivals: Array[CharacterData] = []
+	for c in Roster.CHARACTERS:
+		if c != mine and c != ally:
+			rivals.append(c)
+	player = _spawn(mine, 0, true)
+	_spawn(ally, 0, false)
+	for c in rivals:
+		_spawn(c, 1, false)
 
 
 # --- Consultas (las usan bots y HUD) ---
@@ -152,10 +184,11 @@ func _start_match() -> void:
 
 
 ## Inicio de partida y cambio de lado: 800 croquetas, pistola y sin escudo para todos.
-func _reset_loadouts() -> void:
+func _reset_loadouts(keep_ult := false) -> void:
 	economy.reset(pawtners)
 	for p in pawtners:
 		p.is_alive = false  # para que _start_round no conserve armas ni escudo
+		p.kit.reset_match(keep_ult)
 
 
 func _start_round() -> void:
@@ -164,7 +197,7 @@ func _start_round() -> void:
 		_reset_loadouts()
 	if round_number == SWAP_AFTER_ROUND + 1:
 		attacker_team = 1 - attacker_team
-		_reset_loadouts()
+		_reset_loadouts(true)
 	if round_number == ROUNDS_TO_WIN * 2 - 1:
 		# Ronda decisiva con 4–4: el lado se sortea.
 		attacker_team = randi() % 2
@@ -175,6 +208,9 @@ func _start_round() -> void:
 	if plant:
 		plant.queue_free()
 		plant = null
+	# Trampas, vigías, nubes, muros... no pasan de una ronda a otra.
+	for node in get_tree().get_nodes_in_group(AbilityEffects.GROUP):
+		node.queue_free()
 	for plush in plushes:
 		plush.queue_free()
 	plushes.clear()
@@ -207,6 +243,9 @@ func _start_round() -> void:
 	seed.give_to(attackers[round_number % attackers.size()])
 
 	economy.begin_round()
+	for p in pawtners:
+		p.kit.begin_round()
+	_refresh_clovers()
 	for p in pawtners:
 		if p != player:
 			_bot_buy(p)
@@ -301,6 +340,7 @@ func _update_seed_pickup() -> void:
 
 
 func _plant_seed(p: Pawtner) -> void:
+	p.kit.add_ult_point()
 	var site := _map.site_at(p.global_position)
 	seed.clear()
 	plant = MoonPlant.new()
@@ -373,6 +413,9 @@ func _update_interactions(delta: float) -> void:
 			if p.is_interacting and p.available_interaction == ACTION_UPROOT:
 				p.interaction_progress = plant.uproot_progress
 		if plant.uproot_progress >= 1.0:
+			for p in pawtners:
+				if p.is_interacting and p.available_interaction == ACTION_UPROOT:
+					p.kit.add_ult_point()
 			economy.add_team(pawtners, defender_team(), Economy.OBJECTIVE_REWARD)
 			_end_round(defender_team(), "¡Planta arrancada!")
 
@@ -419,6 +462,7 @@ func _remove_plush(plush: Plush) -> void:
 func _on_pawtner_died(victim: Pawtner, killer: Pawtner) -> void:
 	if killer and killer.team != victim.team:
 		economy.add(killer, Economy.KILL_REWARD)
+		killer.kit.on_kill()
 	if victim.carrying_seed:
 		seed.drop(victim.global_position)
 	if phase in [Phase.ACTION, Phase.PLANTED]:
@@ -437,10 +481,11 @@ func _on_pawtner_died(victim: Pawtner, killer: Pawtner) -> void:
 
 # --- Creación de Pawtners ---
 
-func _spawn(display_name: String, team: int, is_player: bool) -> Pawtner:
+func _spawn(character: CharacterData, team: int, is_player: bool) -> Pawtner:
 	var p := PAWTNER_SCENE.instantiate() as Pawtner
-	p.name = display_name
-	p.display_name = display_name
+	p.name = character.display_name
+	p.character = character
+	p.display_name = "%s (tú)" % character.display_name if is_player else character.display_name
 	p.team = team
 	p.weapon_data = Economy.PISTOL
 	if is_player:
@@ -450,6 +495,10 @@ func _spawn(display_name: String, team: int, is_player: bool) -> Pawtner:
 		var indicator := AimIndicator.new()
 		indicator.name = "AimIndicator"
 		p.add_child(indicator)
+		var ability_indicator := AbilityAimIndicator.new()
+		ability_indicator.name = "AbilityAimIndicator"
+		ability_indicator.controller = pc
+		p.add_child(ability_indicator)
 	else:
 		var bot := BotController.new()
 		bot.name = "BotController"
@@ -462,6 +511,49 @@ func _spawn(display_name: String, team: int, is_player: bool) -> Pawtner:
 	p.died.connect(_on_pawtner_died)
 	pawtners.append(p)
 	return p
+
+
+# --- Habilidades ---
+
+## Calma total (Capi X): revive al compañero caído en esta ronda; si está vivo, escudo a ambos.
+func total_calm(caster: Pawtner, revive_health: float, shield_points: float, shield_reduction: float) -> void:
+	for mate in team_members(caster.team):
+		if mate == caster or mate.is_alive:
+			continue
+		var pos := mate.death_position
+		for plush in plushes.duplicate():
+			if plush.pawtner == mate:
+				pos = plush.global_position
+				_remove_plush(plush)
+		mate.global_position = Vector3(pos.x, 0.0, pos.z)
+		mate.revive(revive_health)
+		if mate == player:
+			_camera.set_target(player)
+		AbilityEffects.spawn_pulse(pos, 2.0, Color(0.6, 1.0, 0.7))
+		return
+	for mate in team_members(caster.team):
+		if mate.shield < shield_points:
+			mate.set_armor(1, shield_points, shield_reduction)
+		AbilityEffects.spawn_pulse(mate.global_position, 1.5, Color(0.85, 0.95, 1.0))
+
+
+## Tréboles: uno en cada pasillo; reaparecen cada 2 rondas.
+func _refresh_clovers() -> void:
+	if round_number % 2 == 0:
+		return
+	for cell: Vector2i in CLOVER_CELLS:
+		var pos := _map.cell_to_world(cell.x, cell.y)
+		var taken := false
+		for c: Variant in _clovers:
+			if is_instance_valid(c) and (c as Clover).global_position.distance_to(pos) < 0.5:
+				taken = true
+		if not taken:
+			var clover := Clover.new()
+			clover.name = "Clover"
+			clover.position = pos
+			_map.add_child(clover)
+			_clovers.append(clover)
+	_clovers = _clovers.filter(func(c: Variant) -> bool: return is_instance_valid(c))
 
 
 # --- Compras ---
@@ -480,9 +572,19 @@ func _bot_buy(p: Pawtner) -> void:
 		elif economy.can_afford(p, Economy.SHOTGUN.price + light_price):
 			economy.buy_weapon(p, Economy.SHOTGUN)
 		else:
-			return  # eco: ahorra para la siguiente ronda
+			return  # eco: ahorra todo para la siguiente ronda
 	if not economy.buy_shield(p, 1):
 		economy.buy_shield(p, 0)
+	_bot_buy_abilities(p)
+
+
+## Con lo que sobra, cargas de habilidades (primero las más baratas).
+func _bot_buy_abilities(p: Pawtner) -> void:
+	var abilities := p.kit.character.abilities.filter(func(a: AbilityData) -> bool: return a.price > 0 and a.slot != "X")
+	abilities.sort_custom(func(x: AbilityData, y: AbilityData) -> bool: return x.price < y.price)
+	for a: AbilityData in abilities:
+		while economy.buy_ability(p, a.slot):
+			pass
 
 
 func _flat_distance(a: Vector3, b: Vector3) -> float:

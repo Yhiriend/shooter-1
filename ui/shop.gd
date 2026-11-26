@@ -1,14 +1,14 @@
 class_name Shop
 extends Control
-## Tienda de la fase de compra, en dos secciones: Armas y Escudo.
+## Tienda de la fase de compra, en tres secciones: Armas, Escudo y Habilidades.
 ## Se porta un arma y un escudo (o ninguno). Lo comprado queda marcado; tocarlo lo devuelve,
 ## y elegir otra cosa de la misma sección devuelve la compra anterior.
 ## Se abre sola al empezar la fase de compra; botón «Tienda» o tecla B para reabrirla.
 
 const TITLE_SIZE := 30
 const SECTION_SIZE := 22
-const CARD_SIZE := 21
-const CARD_MIN := Vector2(300, 132)
+const CARD_SIZE := 19
+const CARD_MIN := Vector2(300, 100)
 
 const PANEL_COLOR := Color(0.16, 0.12, 0.24, 0.98)
 const CARD_COLOR := Color(0.28, 0.22, 0.40)
@@ -29,6 +29,10 @@ var _weapon_cards: Array[Button] = []
 ## Índice 0 = «Sin escudo»; 1.. = Economy.SHIELDS.
 var _shield_cards: Array[Button] = []
 var _toggle: Button
+var _abilities_row: HBoxContainer
+## Ranuras de habilidad comprables, en el mismo orden que _ability_cards.
+var _ability_slots: Array[String] = []
+var _ability_cards: Array[Button] = []
 
 
 func _ready() -> void:
@@ -45,7 +49,7 @@ func _ready() -> void:
 
 func _process(_delta: float) -> void:
 	var m := MatchManager.current
-	var buying := m != null and m.is_buy_phase()
+	var buying := m != null and m.player != null and m.is_buy_phase()
 	if not buying and _panel.visible:
 		_set_open(false)
 	_toggle.visible = buying and not _panel.visible
@@ -111,10 +115,15 @@ func _build() -> void:
 		shields_row.add_child(card)
 		_shield_cards.append(card)
 
+	column.add_child(_label("HABILIDADES  (las cargas que no uses se guardan)", SECTION_SIZE, ACCENT))
+	_abilities_row = HBoxContainer.new()
+	_abilities_row.add_theme_constant_override("separation", 10)
+	column.add_child(_abilities_row)
+
 	var done := Button.new()
 	done.text = "Listo"
 	done.focus_mode = Control.FOCUS_NONE
-	done.custom_minimum_size = Vector2(0, 64)
+	done.custom_minimum_size = Vector2(0, 52)
 	done.add_theme_font_size_override("font_size", TITLE_SIZE - 4)
 	for state in ["normal", "hover", "pressed"]:
 		done.add_theme_stylebox_override(state, _box(ACCENT.darkened(0.35 if state == "normal" else 0.2), 16))
@@ -175,6 +184,8 @@ func _refresh() -> void:
 		_style_card(_weapon_cards[i], "%s\n%s\n%s" % [data.display_name, stats, status],
 			bought, equipped and not bought, not affordable and not equipped)
 
+	_refresh_abilities(p, eco)
+
 	var bought_shield := eco.bought_shield(p)
 	# «Sin escudo»: solo se puede elegir devolviendo el escudo comprado en esta ronda.
 	var none_equipped := p.armor_index == -1
@@ -191,6 +202,45 @@ func _refresh() -> void:
 			else ("Equipado (%d)" % ceili(p.shield) if equipped else "%d croquetas" % price)
 		_style_card(_shield_cards[i + 1], "%s\n%s\n%s" % [item["name"], stats, status],
 			bought, equipped and not bought, not affordable and not equipped)
+
+
+func _refresh_abilities(p: Pawtner, eco: Economy) -> void:
+	if _ability_cards.is_empty() and p.kit.character:
+		for a in p.kit.character.abilities:
+			if a.price > 0 and a.slot != "X":
+				var card := _card(_on_ability_pressed.bind(a.slot))
+				_abilities_row.add_child(card)
+				_ability_cards.append(card)
+				_ability_slots.append(a.slot)
+	for i in _ability_cards.size():
+		var slot := _ability_slots[i]
+		var a := p.kit.ability(slot)
+		var charges: int = p.kit.charges.get(slot, 0)
+		var bought := eco.bought_ability_count(p, slot)
+		var full := charges >= a.max_charges
+		var status: String
+		if full and bought > 0:
+			status = "Comprada x%d  ·  tocar para devolver" % bought
+		elif full:
+			status = "Completa"
+		else:
+			status = "%d croquetas" % a.price
+		var label := "%s  ·  %s\nCargas %d/%d\n%s" % [slot, a.display_name, charges, a.max_charges, status]
+		_style_card(_ability_cards[i], label, bought > 0, full and bought == 0,
+			not full and not eco.can_afford(p, a.price))
+
+
+func _on_ability_pressed(slot: String) -> void:
+	var m := MatchManager.current
+	if m == null or not m.is_buy_phase():
+		return
+	var p := m.player
+	var a := p.kit.ability(slot)
+	if p.kit.charges.get(slot, 0) >= a.max_charges:
+		m.economy.sell_ability(p, slot)
+	else:
+		m.economy.buy_ability(p, slot)
+	_refresh()
 
 
 func _weapon_stats(data: WeaponData) -> String:

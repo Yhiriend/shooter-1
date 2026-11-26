@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="AbilityData" format=3]
+
+[ext_resource type="Script" path="res://abilities/ability_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+display_name = "Nube de bambú"
+aim_mode = 2
+slot = "E"
+description = "Nube de 3 m durante 14 s que bloquea la visión. 1 gratis por ronda; la 2.ª cuesta 100."
+effect = 10
+free_charges = 1
+max_charges = 2
+price = 100
+cast_range = 10.0
+radius = 3.0
+duration = 14.0

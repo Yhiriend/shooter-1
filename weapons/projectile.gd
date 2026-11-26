@@ -48,9 +48,10 @@ func _physics_process(delta: float) -> void:
 		Layers.WORLD | Layers.PAWTNER, _exclude)
 	var hit := get_world_3d().direct_space_state.intersect_ray(query)
 	if not hit.is_empty():
-		var target := hit["collider"] as Pawtner
-		if target:
-			target.take_damage(damage, shooter)
+		# Pawtners, muros de bambú y vigías reciben daño; el resto solo frena el proyectil.
+		var target: Object = hit["collider"]
+		if target and target.has_method("take_damage"):
+			target.call("take_damage", damage, shooter)
 		queue_free()
 		return
 

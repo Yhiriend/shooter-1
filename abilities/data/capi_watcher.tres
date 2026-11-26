@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="AbilityData" format=3]
+
+[ext_resource type="Script" path="res://abilities/ability_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+display_name = "Vigía tranquilo"
+aim_mode = 2
+slot = "E"
+description = "Pajarito que da visión en cono de 8 m; cae de 1 impacto; se recoge y se vuelve a poner."
+effect = 14
+free_charges = 1
+max_charges = 1
+cast_range = 6.0
+radius = 8.0
