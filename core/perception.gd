@@ -147,6 +147,17 @@ func line_clear(from: Vector3, to: Vector3, team := -1) -> bool:
 	return _line_clear(from, to, team)
 
 
+## ¿Ve `viewer` el punto con su visión real? Visión en 360° hasta su radio (1 m si
+## está cegado) y con línea de vista libre (coberturas altas, muros y nubes la cortan).
+func can_pawtner_see_point(viewer: Pawtner, point: Vector3) -> bool:
+	if not viewer.is_alive:
+		return false
+	var flat := Vector2(point.x - viewer.global_position.x, point.z - viewer.global_position.z)
+	if flat.length() > _member_vision_radius(viewer):
+		return false
+	return _line_clear(viewer.eye_position(), point, viewer.team)
+
+
 func is_point_visible_to_local(point: Vector3) -> bool:
 	if _map == null:
 		return true

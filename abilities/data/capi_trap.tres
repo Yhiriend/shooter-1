@@ -6,10 +6,11 @@
 script = ExtResource("1_data")
 display_name = "Naranja trampa"
 slot = "C"
-description = "Trampa invisible a más de 3 m; al pisarla inmoviliza 1,5 s y revela."
+description = "Trampa invisible a más de 3 m; al pisarla hace 20 de daño, inmoviliza 1,5 s y revela."
 effect = 12
 price = 150
 max_charges = 2
 cast_range = 0.0
 radius = 0.9
 duration = 1.5
+amount = 20.0

@@ -1,12 +1,19 @@
 class_name AbilityAimIndicator
 extends MeshInstance3D
 ## Muestra en el suelo cómo va a salir la habilidad que se está apuntando:
-## área = círculo de alcance alrededor del Pawtner + zona de caída con su radio;
+## área = círculo de alcance alrededor del Pawtner + zona de caída con su radio y una
+## marca en el centro (el punto exacto donde cae);
 ## dirección = flecha hasta el alcance.
 
 const RANGE_COLOR := Color(1, 1, 1, 0.28)
 const TARGET_COLOR := Color(0.78, 0.55, 1.0, 0.45)
 const ARROW_COLOR := Color(0.78, 0.55, 1.0, 0.5)
+const CENTER_COLOR := Color(1, 1, 1, 0.95)
+## Marca del punto de caída: punto central y cruz.
+const CENTER_DOT_RADIUS := 0.14
+const CENTER_CROSS_LENGTH := 0.45
+const CENTER_CROSS_GAP := 0.22
+const CENTER_CROSS_WIDTH := 0.07
 const HEIGHT := 0.07
 const SEGMENTS := 48
 const RING_WIDTH := 0.08
@@ -49,6 +56,7 @@ func _process(_delta: float) -> void:
 	if a.aim_mode == AbilityData.AimMode.AREA:
 		_ring(origin, maxf(a.cast_range, 3.0), RANGE_COLOR)
 		_disc(target, maxf(a.radius, MIN_TARGET_RADIUS), TARGET_COLOR)
+		_center_mark(target, CENTER_COLOR)
 	else:
 		_arrow(origin, target, ARROW_COLOR)
 	_imesh.surface_end()
@@ -73,6 +81,22 @@ func _disc(center: Vector3, radius: float, color: Color) -> void:
 		_tri(center, center + Vector3(cos(a0), 0.0, sin(a0)) * radius,
 			center + Vector3(cos(a1), 0.0, sin(a1)) * radius, color)
 	_ring(center, radius, Color(color, 0.9))
+
+
+## Punto y cruz en el centro de la zona de caída.
+func _center_mark(center: Vector3, color: Color) -> void:
+	var dot := Vector3.UP * 0.005
+	for i in 16:
+		var a0 := TAU * i / 16
+		var a1 := TAU * (i + 1) / 16
+		_tri(center + dot, center + dot + Vector3(cos(a0), 0.0, sin(a0)) * CENTER_DOT_RADIUS,
+			center + dot + Vector3(cos(a1), 0.0, sin(a1)) * CENTER_DOT_RADIUS, color)
+	for dir: Vector3 in [Vector3.RIGHT, Vector3.LEFT, Vector3.FORWARD, Vector3.BACK]:
+		var side := dir.cross(Vector3.UP) * CENTER_CROSS_WIDTH * 0.5
+		var near := center + dir * CENTER_CROSS_GAP
+		var far := center + dir * (CENTER_CROSS_GAP + CENTER_CROSS_LENGTH)
+		_tri(near + side, near - side, far + side, color)
+		_tri(far + side, near - side, far - side, color)
 
 
 func _arrow(from: Vector3, to: Vector3, color: Color) -> void:

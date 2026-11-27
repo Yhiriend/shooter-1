@@ -92,7 +92,8 @@ static func cast(p: Pawtner, a: AbilityData, target: Vector3) -> CastResult:
 		AbilityData.Effect.BIG_SMOKE:
 			_zone(map, AbilityZone.Kind.BIG_SMOKE, p.team, target, a.radius, a.duration)
 		AbilityData.Effect.ORANGE_TRAP:
-			_place(map, PlacedDevice.Kind.TRAP, p, map.nearest_free_point(target), a.radius, 0.0, a.duration)
+			var trap := _place(map, PlacedDevice.Kind.TRAP, p, map.nearest_free_point(target), a.radius, 0.0, a.duration)
+			trap.damage = a.amount
 		AbilityData.Effect.HOT_SPRING:
 			_zone(map, AbilityZone.Kind.HEAL, p.team, target, a.radius, a.duration, a.amount)
 		AbilityData.Effect.WATCHER:

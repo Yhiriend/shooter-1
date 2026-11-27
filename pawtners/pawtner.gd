@@ -233,6 +233,10 @@ func is_blinded() -> bool:
 	return _blind_time > 0.0
 
 
+func is_stunned() -> bool:
+	return _stun_time > 0.0
+
+
 func blind_time_left() -> float:
 	return _blind_time
 
@@ -570,6 +574,7 @@ func _apply_character_look() -> void:
 		($Visual/Head as MeshInstance3D).material_override = fur
 	_flash_meshes.clear()
 	_collect_flash_meshes(_visual)
+	StatusIndicators.new().attach(self, _visual)
 
 
 func _setup_animations(model: Node) -> void:

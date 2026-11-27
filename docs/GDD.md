@@ -207,7 +207,7 @@ Un toque corto sin arrastrar lanza las de dirección y área hacia donde mira el
 | Pawtner | Tecla | Habilidad | Coste | Efecto |
 | --- | --- | --- | --- | --- |
 | Mochi | C | Ovillo rebotón | 200 | Ovillo que rebota en coberturas; al detenerse revela enemigos a 5 m durante 2 s |
-| Mochi | Q | Cascabel | 150 | Estalla y deja con 1 m de visión durante 1,5 s a los enemigos que lo estén mirando (no afecta a tu equipo) |
+| Mochi | Q | Cascabel | 150 | Estalla y deja con 1 m de visión durante 1,5 s a los enemigos que vean el estallido con su visión real, sin importar hacia dónde miren (no afecta a tu equipo) |
 | Mochi | E | Salto felino | Gratis | Impulso de 4 m; se recupera con cada eliminación |
 | Mochi | X | Ojos nocturnos | 5 pts | 8 s viendo las huellas de todo enemigo que corra, en todo el mapa |
 | Pip | C | Zanahoria señuelo | 100 | Genera ondas de pasos falsos durante 4 s |
@@ -218,7 +218,7 @@ Un toque corto sin arrastrar lanza las de dirección y área hacia donde mira el
 | Tofu | Q | Charco de miel | 150 | Zona de 3 m durante 6 s: frena un 40 % y hace visibles los pasos |
 | Tofu | E | Nube de bambú | Gratis (2.ª: 100) | Nube de 3 m durante 14 s, colocada desde un mapa táctico; bloquea visión |
 | Tofu | X | Siesta del bosque | 5 pts | Nube de 8 m durante 8 s; los enemigos dentro ven a 1 m |
-| Capi | C | Naranja trampa | 150 | Trampa invisible a más de 3 m; al pisarla inmoviliza 1,5 s y revela |
+| Capi | C | Naranja trampa | 150 | Trampa invisible a más de 3 m; al pisarla hace 20 de daño, inmoviliza 1,5 s y revela |
 | Capi | Q | Baño termal | 200 | Charco que cura a aliados 8 de vida por segundo, hasta 40 |
 | Capi | E | Vigía tranquilo | Gratis | Pajarito sobre una cobertura que da visión en cono de 8 m; cae de 1 impacto; se recoge y se vuelve a poner |
 | Capi | X | Calma total | 4 pts | Revive al compañero caído en esta ronda con 100 de vida; si está vivo, da 50 de escudo a ambos |

@@ -61,7 +61,7 @@ Un toque corto sin arrastrar lanza las de dirección y área hacia donde mira tu
 | Tecla | Habilidad | Modo | Coste | Qué hace |
 | --- | --- | --- | --- | --- |
 | C | **Ovillo rebotón** | Dirección | 200 (máx. 1) | Lanza un ovillo en línea recta, hasta 12 m. Rebota en coberturas hasta 3 veces (pierde un 20 % de velocidad en cada rebote). Al detenerse (1,4 s o tras el último rebote) revela a tu equipo a todos los enemigos a 5 m durante 2 s. |
-| Q | **Cascabel** | Área | 150 (máx. 2) | Lo lanzas a un punto a hasta 8 m; vuela 0,5 s (o hasta chocar) y estalla. Los enemigos a 8 m del estallido, con línea de vista y que lo estén mirando (dentro de 60° de su frente) quedan con 1 m de visión durante 1,5 s. No afecta a tu equipo. |
+| Q | **Cascabel** | Área | 150 (máx. 2) | Lo lanzas a un punto a hasta 8 m; vuela 0,5 s (o hasta chocar) y estalla con un destello de luz blanca. Los enemigos a 8 m del estallido que lo vean con su visión real (dentro de su radio de visión y con línea de vista; da igual hacia dónde miren) quedan con 1 m de visión durante 1,5 s. No afecta a tu equipo. |
 | E | **Salto felino** | Instantánea | Gratis | Impulso de 4 m en 0,15 s hacia donde te mueves (si estás quieto, hacia donde miras). Choca con las paredes. Se recupera con cada eliminación en la ronda (si la gastaste). |
 | X | **Ojos nocturnos** | Instantánea | 5 puntos | Durante 8 s, tu equipo ve a todo enemigo que esté corriendo, en todo el mapa. Quien camina o está quieto no aparece. |
 
@@ -111,7 +111,7 @@ Un toque corto sin arrastrar lanza las de dirección y área hacia donde mira tu
 
 | Tecla | Habilidad | Modo | Coste | Qué hace |
 | --- | --- | --- | --- | --- |
-| C | **Naranja trampa** | Instantánea | 150 (máx. 2) | Coloca una trampa a tus pies que dura toda la ronda. Los enemigos solo la ven a menos de 3 m. Si un enemigo pasa a 0,9 m, queda inmovilizado 1,5 s (puede disparar) y revelado a tu equipo durante 3 s. La trampa se consume. |
+| C | **Naranja trampa** | Instantánea | 150 (máx. 2) | Coloca una trampa a tus pies que dura toda la ronda. Los enemigos solo la ven a menos de 3 m. Si un enemigo pasa a 0,9 m, recibe 20 de daño, queda inmovilizado 1,5 s (puede disparar) y revelado a tu equipo durante 3 s. La trampa se consume. |
 | Q | **Baño termal** | Área | 200 (máx. 1) | Charco de 2,5 m de radio a hasta 6 m, durante 5 s. Cura a los aliados que estén dentro 8 de vida por segundo, hasta 40 por aliado. |
 | E | **Vigía tranquilo** | Área | Gratis | Coloca un pajarito a hasta 6 m, mirando en la dirección en que lo lanzas. Da a tu equipo visión en un cono de 90° y 8 m (también abre la niebla). Cae de un impacto enemigo. Pulsando E otra vez lo recoges y recuperas la carga. |
 | X | **Calma total** | Instantánea | 4 puntos | Si tu compañero cayó en esta ronda, lo revive con 100 de vida donde está su peluche (o donde cayó). Si está vivo, ambos reciben 50 de escudo con un 30 % de reducción de daño. |
@@ -126,10 +126,10 @@ Lo que las habilidades le hacen a un Pawtner:
 
 | Estado | Efecto | Lo causan |
 | --- | --- | --- |
-| **Cegado** | Visión reducida a 1 m; en tu pantalla, destello blanco | Cascabel (Mochi Q), Siesta del bosque (Tofu X) |
+| **Cegado** | Visión reducida a 1 m; en tu pantalla, destello blanco. Todos le ven una cinta blanca sobre los ojos | Cascabel (Mochi Q), Siesta del bosque (Tofu X) |
 | **Lento** | Se mueve más despacio | Tierra al aire (Pip Q, 60 %), Charco de miel (Tofu Q, 60 %) |
 | **Cono abierto** | Dispersión del arma ×3 | Tierra al aire (Pip Q) |
-| **Aturdido** | No se mueve, no dispara ni usa habilidades | Gran salto (Pip X) |
+| **Aturdido** | No se mueve, no dispara ni usa habilidades. Todos le ven estrellitas girando sobre la cabeza | Gran salto (Pip X) |
 | **Inmovilizado** | No se mueve, pero puede disparar | Naranja trampa (Capi C) |
 | **Revelado** | El rival lo ve aunque no tenga línea de vista | Ovillo (Mochi C), trampa (Capi C), Ojos nocturnos (Mochi X), polen de la Semilla Lunar |
 | **Pasos ruidosos** | Sus pasos hacen ondas aunque camine | Charco de miel (Tofu Q) |

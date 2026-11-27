@@ -18,6 +18,8 @@ var team := 0
 var radius := 1.0
 var duration := 0.0
 var amount := 0.0
+## Trampa: daño al pisarla.
+var damage := 0.0
 ## Vigía: hacia dónde mira (si no, el frente de quien lo colocó).
 var look_dir := Vector3.ZERO
 
@@ -116,6 +118,8 @@ func _check_trap() -> void:
 	for p in Perception.current.pawtners:
 		if p.is_alive and p.team != team and _flat_distance(p.global_position) <= radius:
 			p.apply_root(amount)
+			if damage > 0.0:
+				p.take_damage(damage, owner_pawtner if is_instance_valid(owner_pawtner) else null)
 			Sfx.at("trap", global_position, 2.0)
 			Perception.current.reveal_to_team(team, p, TRAP_REVEAL_TIME)
 			queue_free()
