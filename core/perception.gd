@@ -87,6 +87,11 @@ func team_rids(team: int) -> Array[RID]:
 	return rids
 
 
+## Niebla de tu equipo: una celda por píxel (L8), 255 = se ve, 0 = oculto. La usa el minimapa.
+func fog_texture() -> Texture2D:
+	return _fog_texture
+
+
 ## ¿El equipo `team` ve ahora mismo a `target`?
 func can_team_see(team: int, target: Pawtner) -> bool:
 	if target.team == team:

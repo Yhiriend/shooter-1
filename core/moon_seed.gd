@@ -17,6 +17,8 @@ var _time := 0.0
 
 
 func _ready() -> void:
+	# Sigue al portador en _process (ya interpolado): no se interpola otra vez.
+	physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF
 	var sphere := SphereMesh.new()
 	sphere.radius = 0.22
 	sphere.height = 0.44
@@ -48,6 +50,7 @@ func drop(pos: Vector3) -> void:
 	carrier = null
 	state = State.DROPPED
 	global_position = Vector3(pos.x, 0.3, pos.z)
+	reset_physics_interpolation()
 
 
 ## Se usó para sembrar, o se retira al terminar la ronda.
@@ -62,7 +65,7 @@ func _process(delta: float) -> void:
 	_time += delta
 	match state:
 		State.CARRIED:
-			global_position = carrier.global_position + Vector3(0.0, 1.75, 0.0)
+			global_position = carrier.get_global_transform_interpolated().origin + Vector3(0.0, 1.75, 0.0)
 			visible = carrier.is_alive and carrier.is_revealed()
 		State.DROPPED:
 			visible = true

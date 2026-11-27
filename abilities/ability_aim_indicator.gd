@@ -20,6 +20,7 @@ var _imesh := ImmediateMesh.new()
 
 
 func _ready() -> void:
+	physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF
 	top_level = true
 	global_transform = Transform3D.IDENTITY
 	mesh = _imesh
@@ -41,7 +42,8 @@ func _process(_delta: float) -> void:
 	var a := p.kit.ability(controller.aiming_slot)
 	if a == null or not p.is_alive:
 		return
-	var origin := Vector3(p.global_position.x, HEIGHT, p.global_position.z)
+	var pos := p.get_global_transform_interpolated().origin
+	var origin := Vector3(pos.x, HEIGHT, pos.z)
 	var target := Vector3(controller.aiming_target.x, HEIGHT, controller.aiming_target.z)
 	_imesh.surface_begin(Mesh.PRIMITIVE_TRIANGLES)
 	if a.aim_mode == AbilityData.AimMode.AREA:

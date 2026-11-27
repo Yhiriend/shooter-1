@@ -6,6 +6,8 @@
 [ext_resource type="Resource" path="res://abilities/data/tofu_honey.tres" id="3_honey"]
 [ext_resource type="Resource" path="res://abilities/data/tofu_smoke.tres" id="4_smoke"]
 [ext_resource type="Resource" path="res://abilities/data/tofu_big_smoke.tres" id="5_big_smoke"]
+[ext_resource type="PackedScene" path="res://pawtners/models/tofu.glb" id="9_model"]
+[ext_resource type="Texture2D" path="res://pawtners/portraits/tofu.png" id="10_portrait"]
 
 [resource]
 script = ExtResource("1_char")
@@ -16,3 +18,5 @@ role = "Madriguera"
 personality = "Dormilón y tranquilo; abraza su bambú."
 body_color = Color(0.92, 0.92, 0.95, 1)
 abilities = Array[ExtResource("1_ability")]([ExtResource("2_wall"), ExtResource("3_honey"), ExtResource("4_smoke"), ExtResource("5_big_smoke")])
+model = ExtResource("9_model")
+portrait = ExtResource("10_portrait")

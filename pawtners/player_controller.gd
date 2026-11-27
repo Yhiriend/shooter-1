@@ -15,8 +15,20 @@ extends Node
 
 var _pawtner: Pawtner
 var _touch: TouchControls
-## Armas de disparo al soltar: true mientras se arrastra el joystick de disparo.
-var _release_armed := false
+## El apuntado asistido busca rivales hasta el alcance del arma por este factor.
+@export var assist_range_mult := 1.15
+## Pistola: segundos manteniendo sin arrastrar antes de empezar el disparo asistido.
+@export var assist_hold_delay := 0.1
+
+## Rival al que apunta el asistido ahora (null si no hay o se apunta a mano).
+var assist_target: Pawtner
+## Estado del joystick de disparo en el toque actual.
+var _stick_was_active := false
+## true si en este toque el dedo se arrastró: apuntado manual hasta soltar.
+var _manual_aim := false
+var _last_manual_aim := Vector2.ZERO
+## Segundos que lleva el dedo en el joystick de disparo en este toque.
+var _stick_time := 0.0
 ## Estado anterior de los botones de habilidad, para detectar el toque (flanco).
 var _ability_was_pressed := {}
 
@@ -41,6 +53,7 @@ func _physics_process(_delta: float) -> void:
 	else:
 		_read_keyboard_mouse()
 	_update_interact_button()
+	_update_reload_button()
 	_read_abilities()
 
 
@@ -138,29 +151,100 @@ func _update_interact_button() -> void:
 	button.set_label(action)
 
 
+## Botón de recarga: muestra el cargador y, mientras recarga, su progreso en el anillo.
+func _update_reload_button() -> void:
+	if _touch == null:
+		return
+	var button := _touch.reload_button
+	var weapon := _pawtner.weapon
+	button.visible = _touch.is_touch_mode() and _touch.move_stick.visible and _pawtner.is_alive and weapon != null
+	if not button.visible:
+		return
+	var fill := weapon.reload_progress() if weapon.is_reloading else -1.0
+	button.set_state("R", "%d/%d" % [weapon.ammo, weapon.data.magazine], not weapon.can_manual_reload(), fill)
+
+
 func _read_touch() -> void:
 	var move: Vector2 = _touch.move_stick.value
 	_pawtner.move_input = move
 	_pawtner.wants_walk = move != Vector2.ZERO and move.length() < walk_threshold
 	_pawtner.wants_aim_fine = false
 	_pawtner.wants_interact = _touch.interact_button.pressed
+	_pawtner.wants_reload = _touch.reload_button.pressed
 
-	var aim: Vector2 = _touch.aim_stick.value
-	var aiming := aim.length() >= aim_stick_threshold
-	if _fires_on_release():
-		# Rifle: arrastrar solo apunta; al soltar sale el tiro hacia donde se apuntaba.
-		_pawtner.wants_shoot = _release_armed and not aiming
-		_release_armed = aiming
-		if _pawtner.wants_shoot:
-			return
+	_read_touch_fire(move)
+
+
+## Joystick de disparo con dos modos, según si el dedo se arrastra en ese toque:
+## - Tocar sin arrastrar: apuntado asistido al rival visible más cercano dentro del alcance.
+## - Arrastrar: apuntado manual hacia donde se arrastra.
+## Pistola: asistido dispara mientras se mantiene; manual dispara al empujar hasta el borde.
+## Rifle y escopeta: en ambos modos el tiro sale al soltar.
+func _read_touch_fire(move: Vector2) -> void:
+	var stick := _touch.aim_stick
+	var active := stick.is_active()
+	var aim: Vector2 = stick.value
+	var dragging := aim.length() >= aim_stick_threshold
+	if active and not _stick_was_active:
+		_manual_aim = false
+	if active and dragging:
+		_manual_aim = true
+		_last_manual_aim = aim
+	var released := _stick_was_active and not active
+	_stick_was_active = active
+	_stick_time = _stick_time + get_physics_process_delta_time() if active else (_stick_time if released else 0.0)
+	_pawtner.wants_shoot = false
+
+	if active or released:
+		if _manual_aim:
+			assist_target = null
+			_pawtner.aim_point = _point_toward(aim if dragging else _last_manual_aim)
+		else:
+			_aim_assist()
+		if _touch_fires_on_release():
+			_pawtner.wants_shoot = released
+		elif _manual_aim:
+			_pawtner.wants_shoot = active and aim.length() >= fire_stick_threshold
+		elif active:
+			# Espera corta: al empezar un arrastre el dedo aún no pasó el umbral, y sin
+			# ella cada apuntado manual soltaría antes un tiro asistido.
+			_pawtner.wants_shoot = _stick_time >= assist_hold_delay
+		else:
+			# Toque corto (soltó antes de la espera): un tiro asistido.
+			_pawtner.wants_shoot = _stick_time < assist_hold_delay
 	else:
-		_release_armed = false
-		_pawtner.wants_shoot = aim.length() >= fire_stick_threshold
-	if aiming:
-		_pawtner.aim_point = _point_toward(aim)
-	elif move != Vector2.ZERO:
-		# Sin apuntar, el animal mira hacia donde camina.
-		_pawtner.aim_point = _point_toward(move)
+		# Vista previa: la mira marca a quién apuntaría un toque.
+		assist_target = _assist_target()
+		if move != Vector2.ZERO:
+			# Sin tocar el joystick de disparo, el animal mira hacia donde camina.
+			_pawtner.aim_point = _point_toward(move)
+
+
+## Apunta al rival visible más cercano dentro del alcance del arma (con un pequeño margen).
+## Sin rival a la vista, mantiene la dirección actual (dispara hacia donde mira).
+func _aim_assist() -> void:
+	var target := _assist_target()
+	assist_target = target
+	if target:
+		_pawtner.aim_point = target.global_position
+	else:
+		_pawtner.aim_point = _pawtner.global_position + _pawtner.facing() * touch_aim_distance
+
+
+func _assist_target() -> Pawtner:
+	if Perception.current == null or _pawtner.weapon == null:
+		return null
+	var reach := _pawtner.weapon.data.max_range * assist_range_mult
+	var best: Pawtner = null
+	var best_d := reach * reach
+	for e in Perception.current.visible_enemies(_pawtner.team):
+		if not e.is_alive:
+			continue
+		var d := e.global_position.distance_squared_to(_pawtner.global_position)
+		if d <= best_d:
+			best_d = d
+			best = e
+	return best
 
 
 func _read_keyboard_mouse() -> void:
@@ -172,6 +256,7 @@ func _read_keyboard_mouse() -> void:
 	else:
 		_pawtner.wants_shoot = Input.is_action_pressed("shoot")
 	_pawtner.wants_interact = Input.is_action_pressed("interact")
+	_pawtner.wants_reload = Input.is_action_pressed("reload")
 
 	var cam := get_viewport().get_camera_3d()
 	if cam == null:
@@ -185,6 +270,10 @@ func _read_keyboard_mouse() -> void:
 
 func _fires_on_release() -> bool:
 	return _pawtner.weapon != null and _pawtner.weapon.data.fire_on_release
+
+
+func _touch_fires_on_release() -> bool:
+	return _pawtner.weapon != null and _pawtner.weapon.data.touch_fire_on_release
 
 
 func _point_toward(screen_dir: Vector2) -> Vector3:

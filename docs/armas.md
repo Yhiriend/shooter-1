@@ -6,7 +6,7 @@ Para el diseño general, ver [GDD.md](GDD.md). Para Pawtners y habilidades, ver 
 
 ## Resumen
 
-Cada Pawtner porta **un arma y un escudo (o ninguno)**. La vida base es 100 y no se regenera. La munición es infinita: solo cuenta el cargador, y recargar siempre lo llena.
+Cada Pawtner porta **un arma y un escudo (o ninguno)**. La vida base es 100 y no se regenera. La munición es infinita: solo cuenta el cargador, y recargar siempre lo llena. Se recarga solo al vaciar el cargador, o a mano en cualquier momento con el botón «R» (móvil) o la tecla R (PC); el botón muestra las balas que quedan y, mientras recarga, el progreso en su anillo.
 
 ## Armas
 
@@ -20,7 +20,8 @@ Cada Pawtner porta **un arma y un escudo (o ninguno)**. La vida base es 100 y no
 | **Recarga** | 1,5 s | 2,0 s | 1,4 s después de cada tiro |
 | **Alcance** | 7,5 m | 4,5 m | 9 m |
 | **Cono quieto (medio ángulo)** | 0,8° | 12° | 0,6° |
-| **Cómo se dispara** | Mantener | Mantener | **Al soltar** |
+| **Cómo se dispara (móvil)** | Mantener (asistido) o empujar al borde (manual) | **Al soltar** | **Al soltar** |
+| **Cómo se dispara (PC)** | Mantener el clic | Mantener el clic | Al soltar el clic |
 | **Ruido del disparo** | 25 m | 30 m | 30 m |
 
 ### Pistola de burbujas
@@ -33,7 +34,20 @@ Para esquinas y macetas. Cada disparo suelta 6 perdigones repartidos en un cono 
 
 ### Rifle de semillas
 
-El arma de precisión. Al mantener y arrastrar el joystick de disparo solo apuntas; el tiro sale **al soltar** (en PC, al soltar el clic). Cada impacto hace 50, así que 2 impactos matan, pero el cargador es de 1 bala: cada tiro obliga a recargar 1,4 s. Si sueltas mientras recarga, el tiro no sale.
+El arma de precisión. Mantener el joystick de disparo solo apunta; el tiro sale **al soltar** (en PC, al soltar el clic). Cada impacto hace 50, así que 2 impactos matan, pero el cargador es de 1 bala: cada tiro obliga a recargar 1,4 s. Si sueltas mientras recarga, el tiro no sale.
+
+## Apuntado en el móvil
+
+El joystick de disparo tiene dos modos, según lo que hagas en cada toque:
+
+| Modo | Cómo | A dónde apunta |
+| --- | --- | --- |
+| **Asistido** | Tocar o mantener sin arrastrar | Al rival visible más cercano dentro del alcance del arma (+15 %). Una mira amarilla marca a quién apuntaría, incluso antes de tocar. Sin rivales a la vista, hacia donde mira tu Pawtner |
+| **Manual** | Arrastrar | Hacia donde arrastras |
+
+- **Pistola:** en asistido dispara mientras mantienes (empieza tras 0,1 s; un toque corto suelta un tiro). En manual dispara al llevar el joystick al borde.
+- **Rifle y escopeta:** en ambos modos el tiro sale al soltar.
+- La bala sale hacia el punto de mira y el Pawtner gira de golpe al disparar. El asistido solo elige la dirección: el cono de dispersión sigue aplicando igual.
 
 ## Precisión
 

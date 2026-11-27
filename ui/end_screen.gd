@@ -64,6 +64,7 @@ func _ready() -> void:
 	buttons.add_child(_button("Cambiar Pawtner", func() -> void:
 		queue_free()
 		m.change_pawtner()))
+	buttons.add_child(_button("Menú principal", func() -> void: GameMode.go_to_menu(get_tree())))
 
 
 static func _label(text: String, size: int, color := Color.WHITE) -> Label:

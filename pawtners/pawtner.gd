@@ -6,6 +6,9 @@ extends CharacterBody3D
 
 signal died(victim: Pawtner, killer: Pawtner)
 signal health_changed(health: float, shield: float)
+## Recibió un impacto: `amount` es el daño total quitado (escudo + vida) y
+## `to_shield` la parte que se llevó el escudo.
+signal damaged(amount: float, to_shield: float, source: Pawtner)
 signal respawned
 ## Revivido por un compañero (rescate de dúo o Calma total).
 signal revived
@@ -21,6 +24,16 @@ const FOOTSTEP_NOISE_RADIUS := 15.0
 ## Invulnerabilidad al reaparecer con protección (no se usa en rondas).
 const RESPAWN_PROTECTION := 2.0
 const LEAP_HEIGHT := 3.0
+## Destello blanco y aplastón del modelo al recibir un impacto.
+const HIT_FLASH_TIME := 0.14
+const HIT_FLASH_ALPHA := 0.85
+const HIT_SQUASH := Vector3(1.15, 0.85, 1.15)
+## Mallas del greybox (se quitan si el personaje tiene modelo).
+const GREYBOX_MESHES: Array[String] = ["Body", "Head", "Nose"]
+## Animaciones del modelo por estado de movimiento (se buscan por el final del nombre,
+## p. ej. «Armature|Idle») y mezcla entre ellas.
+const ANIM_BY_STATE := {MoveState.STILL: "Idle", MoveState.WALK: "Walk", MoveState.RUN: "Sprint"}
+const ANIM_BLEND := 0.15
 
 @export var display_name := "Pawtner"
 ## Equipo fijo: 0 = tu equipo (coral), 1 = rivales (menta). El rol (atacar o
@@ -47,6 +60,8 @@ var move_input := Vector2.ZERO
 var wants_walk := false
 var wants_aim_fine := false
 var wants_shoot := false
+## Recargar ahora aunque al cargador le queden balas.
+var wants_reload := false
 ## Mantener para sembrar, arrancar o rescatar.
 var wants_interact := false
 ## Habilidad a lanzar este frame ("C", "Q", "E", "X" o ""). Se consume al leerla.
@@ -107,6 +122,13 @@ var _revealed := true
 var _footstep_timer := 0.0
 var _protection_left := 0.0
 var _gravity: float = ProjectSettings.get_setting("physics/3d/default_gravity")
+var _flash_mat: StandardMaterial3D
+var _flash_tween: Tween
+## Mallas que se iluminan con el destello (todo lo visible del personaje menos el anillo).
+var _flash_meshes: Array[MeshInstance3D] = []
+var _anim: AnimationPlayer
+## Nombre real de cada animación del modelo, por clave ("Idle", "Walk", "Sprint").
+var _anim_names := {}
 
 @onready var _visual: Node3D = $Visual
 @onready var _collision: CollisionShape3D = $Collision
@@ -162,6 +184,19 @@ func facing() -> Vector3:
 	var f := -global_basis.z
 	f.y = 0.0
 	return f.normalized()
+
+
+## Dirección en el suelo hacia `aim_point` (el frente si el punto está encima).
+func aim_direction() -> Vector3:
+	var d := aim_point - global_position
+	d.y = 0.0
+	return d.normalized() if d.length_squared() > 0.09 else facing()
+
+
+## Gira de golpe hacia `dir` (al disparar, para que el modelo y la bala coincidan).
+func face_now(dir: Vector3) -> void:
+	if dir.length_squared() > 0.0001:
+		rotation.y = atan2(-dir.x, -dir.z)
 
 
 # --- Estados alterados ---
@@ -259,6 +294,7 @@ func _update_motion(delta: float) -> void:
 		Motion.BURROW:
 			if t >= 1.0:
 				global_position = _motion_to
+				reset_physics_interpolation()
 		Motion.LEAP:
 			var p := _motion_from.lerp(_motion_to, t)
 			global_position = p
@@ -331,6 +367,7 @@ func _physics_process(delta: float) -> void:
 		move_state = MoveState.WALK
 	else:
 		move_state = MoveState.RUN
+	_play_animation(move_state)
 	_emit_footsteps(delta)
 
 
@@ -359,8 +396,43 @@ func take_damage(amount: float, source: Pawtner) -> void:
 	Sfx.at("hit", global_position, -4.0)
 	if source and MatchManager.current and source == MatchManager.current.player:
 		Sfx.ui("hit_confirm", -10.0)
+	_flash_hit()
+	damaged.emit(damage, absorbed, source)
+	if DamageNumbers.current:
+		DamageNumbers.current.report(self, damage, absorbed, source)
 	if health <= 0.0:
 		_die(source)
+
+
+## Destello blanco y aplastón rápido del modelo (solo visual).
+func _flash_hit() -> void:
+	if _flash_mat == null:
+		_flash_mat = StandardMaterial3D.new()
+		_flash_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		_flash_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	if _flash_tween:
+		_flash_tween.kill()
+	_flash_mat.albedo_color = Color(1.0, 1.0, 1.0, HIT_FLASH_ALPHA)
+	_set_flash_overlay(_flash_mat)
+	_visual.scale = HIT_SQUASH
+	_flash_tween = create_tween().set_parallel()
+	_flash_tween.tween_property(_flash_mat, "albedo_color:a", 0.0, HIT_FLASH_TIME)
+	_flash_tween.tween_property(_visual, "scale", Vector3.ONE, HIT_FLASH_TIME * 1.5) \
+		.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	_flash_tween.chain().tween_callback(_set_flash_overlay.bind(null))
+
+
+func _set_flash_overlay(mat: Material) -> void:
+	for mesh in _flash_meshes:
+		if is_instance_valid(mesh):
+			mesh.material_overlay = mat
+
+
+func _collect_flash_meshes(node: Node) -> void:
+	for child in node.get_children():
+		if child is MeshInstance3D and child.name != "Ring":
+			_flash_meshes.append(child)
+		_collect_flash_meshes(child)
 
 
 func heal(amount: float) -> void:
@@ -373,6 +445,7 @@ func heal(amount: float) -> void:
 ## Reaparece con vida completa. `protect` da unos segundos de invulnerabilidad.
 func respawn_at(pos: Vector3, protect := true) -> void:
 	global_position = pos
+	reset_physics_interpolation()
 	velocity = Vector3.ZERO
 	health = max_health
 	shield = start_shield
@@ -480,9 +553,41 @@ func _apply_team_color() -> void:
 
 
 func _apply_character_look() -> void:
-	if character == null:
+	if character and character.model:
+		for mesh_name in GREYBOX_MESHES:
+			var mesh := _visual.get_node_or_null(mesh_name)
+			if mesh:
+				_visual.remove_child(mesh)
+				mesh.queue_free()
+		var model := character.model.instantiate()
+		model.name = "Model"
+		_visual.add_child(model)
+		_setup_animations(model)
+	elif character:
+		var fur := StandardMaterial3D.new()
+		fur.albedo_color = character.body_color
+		($Visual/Body as MeshInstance3D).material_override = fur
+		($Visual/Head as MeshInstance3D).material_override = fur
+	_flash_meshes.clear()
+	_collect_flash_meshes(_visual)
+
+
+func _setup_animations(model: Node) -> void:
+	_anim = model.find_child("AnimationPlayer", true, false) as AnimationPlayer
+	if _anim == null:
 		return
-	var fur := StandardMaterial3D.new()
-	fur.albedo_color = character.body_color
-	($Visual/Body as MeshInstance3D).material_override = fur
-	($Visual/Head as MeshInstance3D).material_override = fur
+	for key: String in ["Idle", "Walk", "Sprint"]:
+		for anim_name in _anim.get_animation_list():
+			if anim_name.ends_with(key):
+				_anim_names[key] = anim_name
+				_anim.get_animation(anim_name).loop_mode = Animation.LOOP_LINEAR
+	_play_animation(MoveState.STILL)
+
+
+## Cambia a la animación del estado de movimiento (Idle, Walk o Sprint), con mezcla corta.
+func _play_animation(state: MoveState) -> void:
+	if _anim == null:
+		return
+	var anim_name: String = _anim_names.get(ANIM_BY_STATE[state], "")
+	if anim_name != "" and _anim.current_animation != anim_name:
+		_anim.play(anim_name, ANIM_BLEND)

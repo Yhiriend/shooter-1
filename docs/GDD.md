@@ -253,7 +253,7 @@ El control principal es táctil. Teclado y ratón existen para probar en PC.
 | Moverse | Joystick izquierdo flotante (aparece donde tocas, en la mitad izquierda) | WASD |
 | Caminar en silencio | Inclinar el joystick izquierdo menos de la mitad | Shift |
 | Apuntar | Joystick derecho flotante; sin tocarlo, el animal mira hacia donde camina | Ratón |
-| Disparar | Llevar el joystick derecho hasta el borde (más del 85 %): primero apuntas, luego empujas para disparar | Clic izquierdo |
+| Disparar | Dos modos en el joystick derecho. **Asistido:** tocar sin arrastrar apunta solo al rival visible más cercano dentro del alcance (una mira amarilla lo marca). **Manual:** arrastrar apunta hacia donde arrastras. Pistola: asistido dispara mientras mantienes; manual dispara al llevar el joystick al borde (más del 85 %). Rifle y escopeta: en ambos modos el tiro sale al soltar | Clic izquierdo |
 | Apuntado fino | Botón de mira: cierra el cono y alarga la vista un 20 %, pero frena un 30 % | Clic derecho |
 | Habilidades | Botones C, Q y E en arco junto al joystick derecho y la X arriba (con anillo de carga). Según el modo: instantánea (toque) o apuntada (mantener, arrastrar y soltar) | C, Q, E, X: mantener, apuntar con el ratón y soltar |
 | Sembrar o arrancar | Botón contextual que aparece en la maceta (mantener) | Mantener F |
@@ -341,6 +341,7 @@ Todo debe verse tierno de lejos y leerse claro en medio de un tiroteo. Si hay qu
 - **Feedback:** números de daño con rebote, pequeño temblor de cámara, destello blanco al recibir un impacto.
 - **Audio:** pasos distintos por animal (patitas, saltitos, pisadas pesadas). Cada habilidad suena distinto para aliados y enemigos. Música tranquila en la fase de compra y más intensa al sembrar.
 - **Sonido provisional (hoy):** todo se sintetiza al arrancar en `core/sfx.gd`, sin archivos de audio: disparo propio de cada arma, recarga, impactos, caídas, pasos, un sonido por habilidad, trampa, cascabel, avisos de ronda, siembra, arrancado, victoria y derrota, clics de la interfaz y una música ambiental suave en bucle. Los sonidos del mundo se oyen más fuertes cerca y hacia su lado. Se reemplazarán por audio final en la fase de arte.
+- **Modelos provisionales (hoy):** los 4 Pawtners salen de un mismo modelo base chibi de bloques («Generic Male» de J-Toastie): cabeza cúbica redondeada, ojos negros, manos y pies flotantes y sus animaciones (Idle, Walk, Sprint). Cada uno cambia colores y suma piezas del mismo estilo: Mochi (orejas de gata, manchas calicó, collar con cascabel, cola en espiral), Pip (orejas largas, dientes, mochila con pala, colita), Tofu (orejas y manchas de panda, barriga blanca, cuerpo más ancho, bambú a la espalda) y Capi (hocico ancho, orejitas, naranja en la cabeza). Se generan con `tools/build_pawtners.py` (Blender) en `pawtners/models/` y se asignan en el campo `model` de cada `CharacterData`.
 - **UI:** redondeada y con iconos de patitas; nombre, vida, escudo y munición flotan sobre el personaje, como en la referencia.
 
 ## Arquitectura técnica en Godot 4
@@ -510,6 +511,21 @@ Hecho para el Hito 2 (partida completa):
 - [x] Pausa: botón «II», tecla Esc o botón «atrás» de Android; «Reanudar» o «Abandonar partida» (vuelve a elegir Pawtner)
 - [x] Sonido básico sintetizado (efectos de armas, habilidades, partida e interfaz, y música ambiental)
 - [x] Simulación de 4 bots: se siembra en cerca de la mitad de las rondas; las rondas terminan por eliminación, floración, arrancado y tiempo
+
+Hecho de feedback y controles:
+
+- [x] Recarga manual: botón táctil «R» (muestra el cargador y el progreso de la recarga) y tecla R en PC; no se puede mientras aturdido, congelado o interactuando. Los bots recargan cuando no ven a nadie
+- [x] Dos modos de disparo táctil: asistido (tocar sin arrastrar, apunta al rival visible más cercano y lo marca con una mira) y manual (arrastrar). Rifle y escopeta disparan al soltar en ambos; la pistola, mientras mantienes (asistido) o al llevar el joystick al borde (manual). La bala sale hacia el punto de mira y el Pawtner gira de golpe al disparar
+- [x] Menú principal (escena de inicio) con los 4 Pawtners de fondo: «Partida» (2v2 contra bots) y «Probar Pawtner» (modo práctica). La pausa ofrece Reanudar, Cambiar Pawtner y Menú principal; los resultados también llevan al menú
+- [x] Configuración de la sala de pruebas (pausa → «Configurar sala»): por separado para rivales y compañero, si se mueven y si disparan/usan habilidades. Sin moverse ni atacar son blancos quietos (por defecto); sin atacar ignoran a los rivales y siguen su recorrido (blancos en movimiento); sin moverse pero atacando son torretas. Se aplica al momento y se guarda en el teléfono
+- [x] Minimapa arriba a la izquierda con la niebla de tu equipo: tu Pawtner (flecha hacia donde mira) y tu compañero siempre; rivales solo si tu equipo los ve; semilla caída, portador de la semilla y planta sembrada; macetas A y B. Respeta la misma visión que el juego (no revela a nadie oculto)
+- [x] Selección de Pawtner rediseñada: abajo, un carrete de retratos cuadrados con la cabeza de cada Pawtner (renderizados con `tools/render_portraits.py` en `pawtners/portraits/`); arriba, el elegido en 3D a la izquierda (gira solo o arrastrando) y a la derecha su ficha (animal, rol, personalidad) y sus 4 habilidades con tecla, modo, coste y descripción; botón «Jugar con …» para confirmar
+- [x] Modo práctica para probar habilidades y mecánicas: misma partida, pero los bots se quedan quietos, sin disparar ni usar habilidades; quien muere reaparece a los 2 s (los bots donde estaban, tú en tu spawn) y no deja peluche; la ronda no termina por tiempo ni por eliminación (sí al florecer la semilla); compra de 5 s y tienda abierta durante toda la ronda; croquetas, cargas de C/Q/E y definitiva siempre al máximo
+- [x] Las balas no atraviesan obstáculos: salen a la altura de las manos (0,45 m), así que las coberturas bajas (0,6 m) también las tapan, y nacen en el centro del Pawtner para no atravesar un muro o una cobertura cuando se dispara pegado a ellos
+- [x] Movimiento fluido en pantallas de 90/120 Hz: interpolación de física (la física va a 60 Hz); cámara, etiquetas y semilla siguen la posición interpolada
+- [x] Número de vida dentro de la barra sobre la cabeza; con escudo, «+N» en azul claro a su lado
+- [x] Munición sobre la cabeza: un segmento por bala del cargador bajo la barra de vida (en todos los Pawtners visibles); mientras recarga, una barra gris se llena con el progreso
+- [x] Respuesta al recibir daño: números de daño que saltan y rebotan (amarillos los tuyos, blancos los de tu compañero, azules si solo pegaron al escudo, coral sobre tu equipo; los perdigones de un disparo se suman en un número; respetan la niebla), destello blanco y aplastón del modelo, temblor de cámara proporcional al daño y borde rojo en la pantalla cuando te dan
 
 ## Riesgos y preguntas abiertas
 

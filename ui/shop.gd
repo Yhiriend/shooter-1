@@ -55,7 +55,9 @@ func _process(_delta: float) -> void:
 	_toggle.visible = buying and not _panel.visible
 	if buying and _panel.visible:
 		# El panel tapa el reloj del HUD: se muestra aquí el tiempo de compra restante.
-		_title.text = "Tienda  ·  %d s" % ceili(m.time_left)
+		# En la práctica la tienda sigue abierta durante la ronda (sin tiempo límite).
+		_title.text = "Tienda  ·  práctica" if is_inf(m.time_left) or m.practice and m.phase != MatchManager.Phase.BUY \
+			else "Tienda  ·  %d s" % ceili(m.time_left)
 	if buying and Input.is_action_just_pressed("shop"):
 		_set_open(not _panel.visible)
 
@@ -139,7 +141,8 @@ func _build() -> void:
 		_toggle.add_theme_stylebox_override(state, _box(ACCENT.darkened(0.35), 16))
 	_toggle.pressed.connect(_set_open.bind(true))
 	add_child(_toggle)
-	_toggle.position = Vector2(24, 24)
+	# A la derecha del botón de pausa (20, 20; 72 de ancho), sin taparse con él.
+	_toggle.position = Vector2(108, 20)
 
 
 func _card(callback: Callable) -> Button:

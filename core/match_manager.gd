@@ -45,6 +45,11 @@ const STAGE_GATHER_RADIUS := 4.5
 ## Si a la ronda le queda menos que esto, los atacantes entran aunque no estén reunidos.
 const STAGE_DEADLINE := 50.0
 
+## Modo de prueba (ver GameMode): reaparición, compra corta y recarga de recursos.
+const PRACTICE_RESPAWN_TIME := 2.0
+const PRACTICE_BUY_TIME := 5.0
+const PRACTICE_REFILL_INTERVAL := 0.5
+
 const ACTION_PLANT := "Sembrar"
 const ACTION_UPROOT := "Arrancar"
 const ACTION_RESCUE := "Rescatar"
@@ -91,6 +96,11 @@ var _prefers_shotgun := {}
 var _map: HuertoLunar
 var _camera: TopDownCamera
 var _plant_progress := 0.0
+## Modo de prueba: bots quietos, reaparición a los 2 s, ronda sin fin y recursos infinitos.
+var practice := false
+## Pawtners muertos esperando reaparecer (modo de prueba): Pawtner -> segundos restantes.
+var _respawn_queue := {}
+var _refill_timer := 0.0
 var _hug_noise_timer := 0.0
 
 
@@ -109,6 +119,7 @@ func _ready() -> void:
 		await _map.ready
 	(get_node(perception_path) as Perception).setup(_map, 0)
 	_camera = get_node(camera_path) as TopDownCamera
+	practice = GameMode.practice
 
 	seed = MoonSeed.new()
 	seed.name = "MoonSeed"
@@ -122,6 +133,12 @@ func _ready() -> void:
 	var overlay := HealthOverlay.new()
 	overlay.name = "HealthOverlay"
 	hud.add_child(overlay)
+	var minimap := Minimap.new()
+	minimap.name = "Minimap"
+	hud.add_child(minimap)
+	var damage_numbers := DamageNumbers.new()
+	damage_numbers.name = "DamageNumbers"
+	hud.add_child(damage_numbers)
 	var match_hud := MatchHud.new()
 	match_hud.name = "MatchHud"
 	hud.add_child(match_hud)
@@ -330,12 +347,14 @@ func _start_round() -> void:
 	for p in pawtners:
 		p.kit.begin_round()
 	_refresh_clovers()
-	for p in pawtners:
-		if p != player:
-			_bot_buy(p)
+	if not practice:
+		for p in pawtners:
+			if p != player:
+				_bot_buy(p)
+	_respawn_queue.clear()
 
 	_camera.set_target(player)
-	_set_phase(Phase.BUY, BUY_TIME)
+	_set_phase(Phase.BUY, PRACTICE_BUY_TIME if practice else BUY_TIME)
 	Sfx.ui("round_start", -4.0)
 	round_started.emit(round_number)
 	buy_phase_started.emit()
@@ -367,22 +386,25 @@ func _physics_process(delta: float) -> void:
 	match phase:
 		Phase.BUY:
 			if time_left <= 0.0:
-				_set_phase(Phase.ACTION, ROUND_TIME)
+				# En el modo de prueba la ronda no se acaba por tiempo.
+				_set_phase(Phase.ACTION, INF if practice else ROUND_TIME)
 				Sfx.ui("round_start", -2.0)
 		Phase.ACTION:
 			_update_attack_plan()
 			_update_seed_pickup()
 			_update_interactions(delta)
-			_check_elimination()
+			if not practice:
+				_check_elimination()
 			if phase == Phase.ACTION and time_left <= 0.0:
 				_end_round(defender_team(), "Se acabó el tiempo")
 		Phase.PLANTED:
 			time_left = plant.time_left()
 			_update_interactions(delta)
-			_check_elimination()
+			if not practice:
+				_check_elimination()
 		Phase.ROUND_END:
 			if time_left <= 0.0:
-				if score.max() >= ROUNDS_TO_WIN:
+				if score.max() >= ROUNDS_TO_WIN and not practice:
 					_finish_match()
 				else:
 					_start_round()
@@ -391,6 +413,62 @@ func _physics_process(delta: float) -> void:
 			if time_left <= 0.0:
 				_start_match()
 	_update_plushes(delta)
+	if practice:
+		_update_practice(delta)
+
+
+## Modo de prueba: reaparece a los muertos a los 2 s y mantiene al jugador con croquetas,
+## cargas y definitiva al máximo para probar todo sin esperar rondas.
+func _update_practice(delta: float) -> void:
+	for p: Pawtner in _respawn_queue.keys():
+		if not is_instance_valid(p):
+			_respawn_queue.erase(p)
+			continue
+		_respawn_queue[p] -= delta
+		if _respawn_queue[p] <= 0.0:
+			_respawn_queue.erase(p)
+			_practice_respawn(p)
+	_refill_timer -= delta
+	if _refill_timer <= 0.0 and player:
+		_refill_timer = PRACTICE_REFILL_INTERVAL
+		economy.add(player, Economy.MAX_CREDITS)
+		var kit := player.kit
+		for slot in ["C", "Q", "E"]:
+			var a := kit.ability(slot)
+			if a and kit.charges.get(slot, 0) < a.max_charges:
+				kit.add_charge(slot, a.max_charges)
+		kit.add_ult_point(kit.ult_cost())
+
+
+## Sala de pruebas: aplica a cada bot lo que se eligió en la configuración (se puede
+## cambiar en plena partida desde la pausa). Fuera de la sala, los bots juegan completos.
+func apply_practice_settings() -> void:
+	for p in pawtners:
+		_apply_bot_permissions(p)
+
+
+func _apply_bot_permissions(p: Pawtner) -> void:
+	var bot := p.get_node_or_null("BotController") as BotController
+	if bot == null:
+		return
+	var local_team := player.team if player else 0
+	bot.can_move = not practice or GameMode.bot_can_move(p.team, local_team)
+	bot.can_attack = not practice or GameMode.bot_can_attack(p.team, local_team)
+
+
+## Los bots vuelven donde estaban (son blancos quietos); el jugador, a su spawn.
+func _practice_respawn(p: Pawtner) -> void:
+	if p.is_alive:
+		return
+	var pos := p.death_position
+	if p == player:
+		pos = _map.spawn_point(role_of(p), team_members(p.team).find(p))
+	p.clear_armor()
+	p.respawn_at(pos, false)
+	p.frozen = phase in [Phase.ROUND_END, Phase.MATCH_END]
+	p.setup_lock = phase == Phase.BUY
+	if p == player:
+		_camera.set_target(player)
 
 
 func _finish_match() -> void:
@@ -496,6 +574,7 @@ func _plant_seed(p: Pawtner) -> void:
 	plant.setup(site, attacker_team)
 	_map.add_child(plant)
 	plant.global_position = Vector3(p.global_position.x, 0.0, p.global_position.z)
+	plant.reset_physics_interpolation()
 	plant.bloomed.connect(func() -> void: _end_round(attacker_team, "¡La Semilla Lunar floreció!"))
 	economy.add_team(pawtners, attacker_team, Economy.OBJECTIVE_REWARD)
 	_plant_progress = 0.0
@@ -621,12 +700,15 @@ func _on_pawtner_died(victim: Pawtner, killer: Pawtner) -> void:
 	pawtner_killed.emit(killer, victim)
 	if victim.carrying_seed:
 		seed.drop(victim.global_position)
-	if phase in [Phase.ACTION, Phase.PLANTED]:
+	if practice:
+		_respawn_queue[victim] = PRACTICE_RESPAWN_TIME
+	elif phase in [Phase.ACTION, Phase.PLANTED]:
 		var plush := Plush.new()
 		plush.name = "Plush_%s" % victim.display_name
 		plush.setup(victim, PLUSH_TIME)
 		_map.add_child(plush)
 		plush.global_position = Vector3(victim.global_position.x, 0.0, victim.global_position.z)
+		plush.reset_physics_interpolation()
 		plushes.append(plush)
 	if victim == player:
 		# Mientras estás muerto, la cámara sigue a tu compañero.
@@ -660,6 +742,7 @@ func _spawn(character: CharacterData, team: int, is_player: bool) -> Pawtner:
 		bot.name = "BotController"
 		bot.setup(_map)
 		p.add_child(bot)
+		_apply_bot_permissions(p)
 	_map.add_child(p)
 	if is_player:
 		(p.get_node("PlayerController") as PlayerController).set_touch_controls(
@@ -682,6 +765,7 @@ func total_calm(caster: Pawtner, revive_health: float, shield_points: float, shi
 				pos = plush.global_position
 				_remove_plush(plush)
 		mate.global_position = Vector3(pos.x, 0.0, pos.z)
+		mate.reset_physics_interpolation()
 		mate.revive(revive_health)
 		if mate == player:
 			_camera.set_target(player)
@@ -715,6 +799,8 @@ func _refresh_clovers() -> void:
 # --- Compras ---
 
 func is_buy_phase() -> bool:
+	if practice:
+		return phase in [Phase.BUY, Phase.ACTION, Phase.PLANTED]
 	return phase == Phase.BUY
 
 

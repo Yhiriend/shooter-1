@@ -21,3 +21,4 @@ base_spread_deg = 12.0
 walk_spread_mult = 1.0
 run_spread_mult = 1.2
 bloom_per_shot_deg = 0.0
+touch_fire_on_release = true

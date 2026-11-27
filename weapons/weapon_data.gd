@@ -19,6 +19,9 @@ extends Resource
 @export_group("Cadencia y cargador")
 ## Disparo al soltar: mantener y arrastrar solo apunta; el tiro sale al soltar (rifle).
 @export var fire_on_release := false
+## En el móvil, el tiro sale al soltar el joystick de disparo, tanto con apuntado manual
+## (arrastrar) como asistido (tocar sin arrastrar). Rifle y escopeta.
+@export var touch_fire_on_release := false
 ## Segundos entre disparos (cadencia).
 @export var fire_interval := 0.12
 @export var magazine := 25

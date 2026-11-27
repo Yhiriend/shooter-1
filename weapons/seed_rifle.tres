@@ -19,3 +19,4 @@ projectile_color = Color(0.55, 0.85, 0.35, 1)
 projectile_radius = 0.1
 base_spread_deg = 0.6
 bloom_per_shot_deg = 0.0
+touch_fire_on_release = true

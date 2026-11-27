@@ -6,6 +6,8 @@
 [ext_resource type="Resource" path="res://abilities/data/capi_spring.tres" id="3_spring"]
 [ext_resource type="Resource" path="res://abilities/data/capi_watcher.tres" id="4_watcher"]
 [ext_resource type="Resource" path="res://abilities/data/capi_total_calm.tres" id="5_total_calm"]
+[ext_resource type="PackedScene" path="res://pawtners/models/capi.glb" id="9_model"]
+[ext_resource type="Texture2D" path="res://pawtners/portraits/capi.png" id="10_portrait"]
 
 [resource]
 script = ExtResource("1_char")
@@ -16,3 +18,5 @@ role = "Madriguera"
 personality = "Calma total; lleva una naranja en la cabeza."
 body_color = Color(0.78, 0.58, 0.4, 1)
 abilities = Array[ExtResource("1_ability")]([ExtResource("2_trap"), ExtResource("3_spring"), ExtResource("4_watcher"), ExtResource("5_total_calm")])
+model = ExtResource("9_model")
+portrait = ExtResource("10_portrait")

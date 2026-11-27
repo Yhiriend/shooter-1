@@ -8,7 +8,11 @@ signal ammo_changed(ammo: int, magazine: int)
 signal reload_started
 signal reload_finished
 
-const MUZZLE_HEIGHT := 0.8
+## Altura de las manos del modelo: por debajo de las coberturas bajas (0,6 m), que así
+## tapan las balas como dice el GDD.
+const MUZZLE_HEIGHT := 0.45
+## Dónde suena el disparo (delante del Pawtner). La bala nace en el centro del cuerpo:
+## si naciera delante, pegado a un muro quedaría dentro del bloque y lo atravesaría.
 const MUZZLE_FORWARD := 0.55
 
 var data: WeaponData
@@ -57,6 +61,19 @@ func is_precise_shot_ready() -> bool:
 		and _since_last_shot >= data.first_shot_recovery_time
 
 
+## Progreso 0..1 de la recarga en curso (0 si no recarga).
+func reload_progress() -> float:
+	if not is_reloading or data.reload_time <= 0.0:
+		return 0.0
+	return clampf(1.0 - _reload_left / data.reload_time, 0.0, 1.0)
+
+
+## Se puede recargar a mano ahora: falta munición y el dueño puede actuar.
+func can_manual_reload() -> bool:
+	var o := _owner_pawtner
+	return not is_reloading and ammo < data.magazine and o.can_act() and not o.frozen and not o.is_interacting
+
+
 func start_reload() -> void:
 	if is_reloading or ammo == data.magazine:
 		return
@@ -83,6 +100,9 @@ func _physics_process(delta: float) -> void:
 		return
 
 	var o := _owner_pawtner
+	if o.wants_reload and can_manual_reload():
+		start_reload()
+		return
 	if not o.can_act() or not o.wants_shoot or o.frozen or o.setup_lock or o.is_interacting or _cooldown > 0.0:
 		return
 	if ammo <= 0:
@@ -94,10 +114,12 @@ func _physics_process(delta: float) -> void:
 func _fire() -> void:
 	var precise := is_precise_shot_ready()
 	var half_spread := deg_to_rad(current_half_spread_deg())
-	var forward := -_owner_pawtner.global_basis.z
-	forward.y = 0.0
-	forward = forward.normalized()
-	var muzzle := _owner_pawtner.global_position + Vector3.UP * MUZZLE_HEIGHT + forward * MUZZLE_FORWARD
+	# Sale hacia el punto de mira (no hacia el frente actual, que gira con suavidad):
+	# así el apuntado asistido acierta aunque el Pawtner todavía no haya terminado de girar.
+	var forward := _owner_pawtner.aim_direction()
+	_owner_pawtner.face_now(forward)
+	var origin := _owner_pawtner.global_position + Vector3.UP * MUZZLE_HEIGHT
+	var muzzle := origin + forward * MUZZLE_FORWARD
 
 	var damage := data.damage * (1.0 + data.first_shot_bonus if precise else 1.0)
 	# Sin fuego amigo: los proyectiles atraviesan a los aliados.
@@ -109,7 +131,8 @@ func _fire() -> void:
 		var angle := (randf() + randf() - 1.0) * half_spread
 		var dir := forward.rotated(Vector3.UP, angle)
 		var p := Projectile.new()
-		p.setup(_owner_pawtner, muzzle, dir * data.projectile_speed, damage, data.max_range,
+		# Nace en el centro (nunca dentro de un muro); el alcance suma ese tramo extra.
+		p.setup(_owner_pawtner, origin, dir * data.projectile_speed, damage, data.max_range + MUZZLE_FORWARD,
 			data.projectile_color, data.projectile_radius, exclude)
 		get_tree().current_scene.add_child(p)
 

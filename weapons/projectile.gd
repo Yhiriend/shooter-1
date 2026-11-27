@@ -46,6 +46,8 @@ func _physics_process(delta: float) -> void:
 	var step := velocity * delta
 	var query := PhysicsRayQueryParameters3D.create(global_position, global_position + step,
 		Layers.WORLD | Layers.PAWTNER, _exclude)
+	# Si el tramo empieza dentro de un obstáculo, también cuenta como choque.
+	query.hit_from_inside = true
 	var hit := get_world_3d().direct_space_state.intersect_ray(query)
 	if not hit.is_empty():
 		# Pawtners, muros de bambú y vigías reciben daño; el resto solo frena el proyectil.

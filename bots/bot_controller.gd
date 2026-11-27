@@ -37,6 +37,11 @@ var _path := PackedVector3Array()
 var _path_index := 0
 var _goal := Vector3.ZERO
 var _hold_left := 0.0
+## Sala de pruebas: permisos del bot. Sin moverse se queda en su sitio (puede girar y
+## disparar); sin atacar no dispara, no usa habilidades ni siembra/arranca. Sin ninguno
+## de los dos es un blanco quieto.
+var can_move := true
+var can_attack := true
 var _target: Pawtner
 var _target_time := 0.0
 var _aim_error_start := 0.0
@@ -79,11 +84,31 @@ func _physics_process(delta: float) -> void:
 	_clear_intent()
 	if not _pawtner.is_alive or _map == null or _pawtner.frozen:
 		return
+	if not can_move and not can_attack:
+		return
+	_think(delta)
+	_apply_limits()
+
+
+## Aplica los permisos de la sala de pruebas a la intención ya decidida.
+func _apply_limits() -> void:
+	if not can_move:
+		_pawtner.move_input = Vector2.ZERO
+		_pawtner.wants_walk = false
+	if not can_attack:
+		_pawtner.wants_shoot = false
+		_pawtner.wants_interact = false
+		_pawtner.wants_ability = ""
+
+
+func _think(delta: float) -> void:
 	if _pawtner.setup_lock:
 		_setup_phase(delta)
 		return
 
-	var enemy := _closest_visible_enemy()
+	# Sin permiso para atacar (sala de pruebas) ignora a los rivales: no se frena a apuntar
+	# y sigue su recorrido, como un blanco en movimiento.
+	var enemy := _closest_visible_enemy() if can_attack else null
 	if _should_plant_now(enemy):
 		# Ya en la maceta: sembrar mientras el compañero cubre (o si no hay nadie a la vista).
 		_pawtner.wants_interact = true
@@ -103,6 +128,8 @@ func _physics_process(delta: float) -> void:
 		_investigate(_last_known)
 
 	if state != State.COMBAT:
+		# Sin nadie a la vista: llenar el cargador antes del próximo duelo.
+		_pawtner.wants_reload = enemy == null
 		_objective_timer -= delta
 		if _objective_timer <= 0.0:
 			_objective_timer = OBJECTIVE_EVAL_INTERVAL
@@ -118,7 +145,8 @@ func _physics_process(delta: float) -> void:
 		State.OBJECTIVE:
 			_pursue_objective(delta)
 	# Las habilidades se deciden al final: pueden ajustar el movimiento (impulsos).
-	_abilities.think(self, _pawtner, delta)
+	if can_attack:
+		_abilities.think(self, _pawtner, delta)
 
 
 ## Fase de compra: solo va a su puesto si está dentro de su zona (los defensores, a su maceta)
@@ -131,7 +159,8 @@ func _setup_phase(delta: float) -> void:
 				_follow_path(delta)
 			State.HOLD:
 				_hold_left = maxf(_hold_left, 1.0)  # quedarse en el puesto hasta que empiece la acción
-	_abilities.think(self, _pawtner, delta)
+	if can_attack:
+		_abilities.think(self, _pawtner, delta)
 
 
 func _should_plant_now(enemy: Pawtner) -> bool:
@@ -170,6 +199,7 @@ func _clear_intent() -> void:
 	_pawtner.wants_shoot = false
 	_pawtner.wants_aim_fine = false
 	_pawtner.wants_interact = false
+	_pawtner.wants_reload = false
 
 
 func _closest_visible_enemy() -> Pawtner:
